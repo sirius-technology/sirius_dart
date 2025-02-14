@@ -3,5 +3,6 @@ library;
 
 export 'src/server.dart';
 export 'src/response.dart';
+export 'src/request.dart';
 
 // TODO: Export any libraries intended for clients of this package.
