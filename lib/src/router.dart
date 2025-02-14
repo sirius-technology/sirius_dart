@@ -33,7 +33,7 @@ class Router {
         request.response
           ..statusCode = HttpStatus.badRequest
           ..headers.contentType = ContentType.json
-          ..write(_responseData(e.toString()))
+          ..write(_errorResponseData(e.toString()))
           ..close();
         return;
       }
@@ -59,7 +59,7 @@ class Router {
           request.response
             ..statusCode = HttpStatus.internalServerError
             ..headers.contentType = ContentType.json
-            ..write(_responseData(e.toString()))
+            ..write(_errorResponseData(e.toString()))
             ..close();
           return;
         }
@@ -69,13 +69,13 @@ class Router {
     request.response
       ..statusCode = HttpStatus.notFound
       ..headers.contentType = ContentType.json
-      ..write(_responseData("Page not found"))
+      ..write(_errorResponseData("Page not found"))
       ..close();
     return;
   }
 
-  String _responseData(String msg) {
-    return jsonEncode({"status": true, "message": msg});
+  String _errorResponseData(String msg) {
+    return jsonEncode({"status": false, "message": msg});
   }
 
   Map<String, String>? _matchRoute(String route, String uri) {
