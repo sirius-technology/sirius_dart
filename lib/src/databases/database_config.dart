@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:mysql1/mysql1.dart';
 import 'package:sirius/src/databases/mysql_database.dart';
 import 'package:sirius/src/enums/database_drivers.dart';
@@ -19,8 +21,14 @@ class DatabaseConfig {
           logSuccess("MySQL connection established. 🚀");
           conn.close();
           return true;
+        } on SocketException catch (e) {
+          logError("MySQL connection failed 1 : $e");
+          return false;
+        } on MySqlException catch (e) {
+          logError("MySQL connection failed 2 : $e");
+          return false;
         } catch (e) {
-          logError("MySQL connection failed : $e");
+          logError("MySQL connection failed 3 : $e");
           return false;
         }
       case DatabaseDrivers.SQLITE:
