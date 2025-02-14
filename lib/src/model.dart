@@ -1,6 +1,6 @@
 import 'package:mysql1/mysql1.dart';
 import 'logging.dart';
-import 'mysql_database.dart';
+import 'databases/mysql_database.dart';
 
 abstract class Model {
   String? get table;

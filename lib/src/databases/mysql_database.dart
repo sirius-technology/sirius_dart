@@ -1,11 +1,12 @@
 import 'package:mysql1/mysql1.dart';
+import 'package:sirius/src/databases/database_config.dart';
 
 final ConnectionSettings setting = ConnectionSettings(
-  host: "localhost",
-  port: 3306,
-  user: "root",
-  password: "Somu1999",
-  db: "dart_backend",
+  host: DatabaseConfig.host,
+  port: DatabaseConfig.port,
+  user: DatabaseConfig.user,
+  password: DatabaseConfig.password,
+  db: DatabaseConfig.database,
 );
 
 Future<MySqlConnection> connectMySql() async {
