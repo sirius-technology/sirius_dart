@@ -8,14 +8,13 @@ import 'router.dart';
 class Server {
   final Router _router = Router();
 
-  void group(String prefix, void Function(Router group) callback) {
-    Router groupRouter = Router();
-    callback(groupRouter);
+  void group(String prefix, void Function(Server server) callback) {
+    Server groupServer = Server();
+    callback(groupServer);
 
-    groupRouter.getRoutes.forEach((key, val) {
+    groupServer._router.getRoutes.forEach((key, val) {
       print("key -->> $key");
       print("val -->> $val");
-      // _router.register(method, path, handler)
     });
 
     // groupRouter._routes.forEach((key, handler) {
