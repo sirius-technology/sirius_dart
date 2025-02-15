@@ -21,14 +21,8 @@ class DatabaseConfig {
           logSuccess("MySQL connection established. 🚀");
           conn.close();
           return true;
-        } on SocketException catch (e) {
-          logError("MySQL connection failed 1 : $e");
-          return false;
-        } on MySqlException catch (e) {
-          logError("MySQL connection failed 2 : $e");
-          return false;
         } catch (e) {
-          logError("MySQL connection failed 3 : $e");
+          logError("MySQL connection failed : $e");
           return false;
         }
       case DatabaseDrivers.SQLITE:

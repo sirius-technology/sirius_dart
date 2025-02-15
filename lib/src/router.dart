@@ -9,6 +9,9 @@ class Router {
   final Map<String, Map<String, Future<Response> Function(Request r)>> _routes =
       {};
 
+  Map<String, Map<String, Future<Response> Function(Request r)>>
+      get getRoutes => _routes;
+
   void register(String method, String path,
       Future<Response> Function(Request r) handler) {
     _routes.putIfAbsent(path, () {
