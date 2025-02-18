@@ -9,3 +9,17 @@ void logWarning(String message) {
 void logSuccess(String message) {
   print('\x1B[32m[SUCCESS] $message\x1B[0m'); // 32 = Green Color
 }
+
+void throwError(String message) {
+  const String red = '\x1B[31m'; // ANSI code for red
+  const String reset = '\x1B[0m'; // Reset color
+
+  throw Exception('$red❌ ERROR: $message$reset');
+}
+
+void logMap(Map<String, dynamic> map) {
+  print("📌 Map Log:");
+  map.forEach((key, value) {
+    print("  ▶ $key: $value");
+  });
+}

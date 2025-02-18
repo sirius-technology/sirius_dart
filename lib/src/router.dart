@@ -1,22 +1,19 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:sirius/src/logging.dart';
+
 import 'constants.dart';
 import 'request.dart';
 import 'response.dart';
 
+late Map<String, Map<String, Future<Response> Function(Request r)>> _mainRoutes;
+
 class Router {
-  final Map<String, Map<String, Future<Response> Function(Request r)>> _routes =
-      {};
-
-  Map<String, Map<String, Future<Response> Function(Request r)>>
-      get getRoutes => _routes;
-
-  void register(String method, String path,
-      Future<Response> Function(Request r) handler) {
-    _routes.putIfAbsent(path, () {
-      return {method: handler};
-    });
+  void register(
+      Map<String, Map<String, Future<Response> Function(Request r)>> routes) {
+    _mainRoutes = routes;
+    logMap(_mainRoutes);
   }
 
   Future<void> handleRequest(HttpRequest request) async {
@@ -43,7 +40,7 @@ class Router {
     }
 
     for (MapEntry<String, Map<String, Future<Response> Function(Request r)>> val
-        in _routes.entries) {
+        in _mainRoutes.entries) {
       final String routePath = val.key;
       final Future<Response> Function(Request r)? handler = val.value[method];
 
