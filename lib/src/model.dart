@@ -1,18 +1,21 @@
 import 'package:mysql1/mysql1.dart';
+import 'package:sirius/src/query_builder.dart';
 import 'logging.dart';
 import 'databases/mysql_database.dart';
 
-abstract class Model {
-  String? get table;
+abstract class Model extends QueryBuilder {
+  Model({required this.table}) : super(table);
+
+  String table;
   int? id;
 
   Map<String, dynamic> toMap();
 
   Future<Map<String, dynamic>?> findById(int id) async {
     MySqlConnection conn = await connectMySql();
-    String qry = "SELECT * FROM $table WHERE id = ?";
-    Results result = await conn.query(qry, [id]);
-    closeMySql(conn);
+    findByIdQuery(id).build();
+    Results result = await conn.query(query, [id]);
+    conn.close();
 
     if (result.isEmpty) {
       logError("id is not exist");
@@ -28,7 +31,7 @@ abstract class Model {
     MySqlConnection conn = await connectMySql();
     String qry = "SELECT * FROM $table";
     Results result = await conn.query(qry);
-    closeMySql(conn);
+    conn.close();
 
     if (result.isEmpty) {
       return [];
@@ -87,35 +90,39 @@ abstract class Model {
 
     MySqlConnection conn = await connectMySql();
 
-    await conn.query("UPDATE $table SET $clasue WHERE id = ?",
+    Results results = await conn.query("UPDATE $table SET $clasue WHERE id = ?",
         data.values.toList()..add(id));
 
     conn.close();
 
+    if (results.affectedRows == 0) {
+      logError("0 Rows affected.");
+      return false;
+    }
     return true;
   }
 
-  List<String> _whereClauses = [];
-  List<dynamic> _whereValues = [];
-
-  Model where(String field, dynamic value) {
-    _whereClauses.add(field);
-    _whereValues.add(value);
-    return this;
-  }
-
   Future<List<Map<String, dynamic>>?> getAll() async {
-    String whereFields = _whereClauses.isNotEmpty
-        ? "WHERE ${_whereClauses.join(" = ? AND ")} = ?"
-        : "";
-
     MySqlConnection conn = await connectMySql();
 
-    Results results =
-        await conn.query("SELECT * FROM $table $whereFields", _whereValues);
+    Results results = await conn.query(query, values);
 
     conn.close();
 
     return results.map((e) => e.fields).toList();
+  }
+
+  Future<bool> delete(int id) async {
+    MySqlConnection conn = await connectMySql();
+
+    Results results = await conn.query("DELETE FROM $table WHERE id = ?", [id]);
+
+    conn.close();
+
+    if (results.affectedRows == 0) {
+      logError("0 Rows affected.");
+      return false;
+    }
+    return true;
   }
 }

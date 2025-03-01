@@ -13,14 +13,13 @@ class Router {
   void register(
       Map<String, Map<String, Future<Response> Function(Request r)>> routes) {
     _mainRoutes = routes;
-    logMap(_mainRoutes);
   }
 
   Future<void> handleRequest(HttpRequest request) async {
     final String uriPath = request.uri.path;
     final String method = request.method;
 
-    final List<String> jsonReqMethods = [POST, PUT];
+    final List<String> jsonReqMethods = [POST, PUT, DELETE];
 
     Map<String, dynamic>? jsonBody;
 

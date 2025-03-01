@@ -14,16 +14,13 @@ Future<void> main() async {
 
   Server server = Server();
 
-  server.group("/prefix", (route) {
-    route.group("/suffix", (route2) {
-      route2.get("/user", userController.addUser);
-      route2.post("/user", userController.addUser);
-    });
+  server.group("api", (route) {
+    route.post("addUser", userController.addUser);
+    route.get("getAllUsers", userController.getAllUsers);
+    route.post("getUser", userController.getUser);
+    route.delete("deleteUser", userController.deleteUser);
+    // route.put("updateUser", userController.updateUser);
   });
-
-  server.post("/user", userController.addUser);
-  server.get("/user", userController.addUser);
-  // server.get("/user", userController.addUser);
 
   server.start();
 }

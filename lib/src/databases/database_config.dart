@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:mysql1/mysql1.dart';
+import 'package:postgres/postgres.dart';
 import 'package:sirius/src/databases/mysql_database.dart';
+import 'package:sirius/src/databases/postgresql_database.dart';
 import 'package:sirius/src/enums/database_drivers.dart';
 import 'package:sirius/src/logging.dart';
 
@@ -29,8 +31,15 @@ class DatabaseConfig {
         logWarning("🚀 SQLite is coming soon.");
         return false;
       case DatabaseDrivers.POSTGRESQL:
-        logWarning("🚀 PostgreSQL is coming soon.");
-        return false;
+        try {
+          Connection conn = await connectPostgresql();
+          logSuccess("PostgreSQL connection established. 🚀");
+          conn.close();
+          return true;
+        } catch (e) {
+          logError("PostgreSQL connection failed : $e");
+          return false;
+        }
     }
   }
 }

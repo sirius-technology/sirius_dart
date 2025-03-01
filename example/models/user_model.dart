@@ -1,8 +1,7 @@
 import 'package:sirius/sirius.dart';
 
 class UserModel extends Model {
-  @override
-  String? get table => "users";
+  UserModel() : super(table: "users");
 
   @override
   int? id;
