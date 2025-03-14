@@ -16,7 +16,7 @@ class UserController extends BaseController {
 
     int? id = await userModel.insert();
 
-    return Response({"status": true, "data": id});
+    return Response().send({"status": true, "data": id});
   }
 
   Future<Response> getAllUsers(Request r) async {
@@ -24,7 +24,7 @@ class UserController extends BaseController {
 
     List<Map<String, dynamic>>? userList = await userModel.findAll();
 
-    return Response(baseResponse(status: true, data: userList));
+    return Response().send(baseResponse(status: true, data: userList));
   }
 
   Future<Response> getUser(Request r) async {
@@ -35,7 +35,8 @@ class UserController extends BaseController {
     Validator validator = Validator(r, rules);
 
     if (!validator.validate()) {
-      return Response(baseResponse(status: false, data: validator.allErrors));
+      return Response()
+          .send(baseResponse(status: false, data: validator.allErrors));
     }
 
     int userId = r.jsonValue("user_id");
@@ -44,7 +45,7 @@ class UserController extends BaseController {
 
     Map<String, dynamic>? user = await userModel.findById(userId);
 
-    return Response(baseResponse(status: true, data: user));
+    return Response().send(baseResponse(status: true, data: user));
   }
 
   Future<Response> deleteUser(Request r) async {
@@ -55,7 +56,8 @@ class UserController extends BaseController {
     Validator validator = Validator(r, rules);
 
     if (!validator.validate()) {
-      return Response(baseResponse(status: false, data: validator.allErrors));
+      return Response()
+          .send(baseResponse(status: false, data: validator.allErrors));
     }
 
     int userId = r.jsonValue("user_id");
@@ -64,7 +66,7 @@ class UserController extends BaseController {
 
     bool isDeleted = await userModel.delete(userId);
 
-    return Response(baseResponse(status: isDeleted, data: isDeleted));
+    return Response().send(baseResponse(status: isDeleted, data: isDeleted));
   }
 
   // Future<Response> updateUser(Request request) async {

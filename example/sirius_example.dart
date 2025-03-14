@@ -1,6 +1,7 @@
 import 'package:sirius/sirius.dart';
 
-import 'controllers/user_controller.dart';
+import 'middlewares/first_middleware.dart';
+import 'middlewares/second_middleware.dart';
 
 Future<void> main() async {
   DatabaseConfig.driver = DatabaseDrivers.MYSQL;
@@ -12,15 +13,28 @@ Future<void> main() async {
 
   await DatabaseConfig.initialize();
 
-  Server server = Server();
+  Sirius app = Sirius();
 
-  server.group("api", (route) {
-    route.post("addUser", userController.addUser);
-    route.get("getAllUsers", userController.getAllUsers);
-    route.post("getUser", userController.getUser);
-    route.delete("deleteUser", userController.deleteUser);
-    // route.put("updateUser", userController.updateUser);
+  app.use(FirstMiddleware());
+
+  app.get("/api", (Request r) async {
+    return Response().send({"b": 0});
   });
 
-  server.start();
+  app.group("user", (route) {
+    route.use(SecondMiddleware());
+    route.get("get", (Request r) async {
+      return Response().send({"user": 0});
+    });
+  });
+
+  app.start(
+      port: 9000,
+      callback: () {
+        print("Server is running port 9000");
+      });
+
+  await fileWatcher("example/sirius_example.dart", callback: () {
+    app.close();
+  });
 }

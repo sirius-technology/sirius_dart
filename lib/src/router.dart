@@ -1,18 +1,26 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:sirius/src/logging.dart';
+import 'package:sirius/src/middleware.dart';
 
 import 'constants.dart';
 import 'request.dart';
 import 'response.dart';
 
-late Map<String, Map<String, Future<Response> Function(Request r)>> _mainRoutes;
-
 class Router {
-  void register(
-      Map<String, Map<String, Future<Response> Function(Request r)>> routes) {
-    _mainRoutes = routes;
+  final Map<String, Map<String, Future<Response> Function(Request r)>>
+      _mainRoutes = {};
+
+  final List<Middleware> _mainMiddlewares = [];
+
+  void registerRoutes(
+      Map<String, Map<String, Future<Response> Function(Request r)>>
+          routesMap) {
+    _mainRoutes.addAll(routesMap);
+  }
+
+  void registerMiddlewares(List<Middleware> middlewaresList) {
+    _mainMiddlewares.addAll(middlewaresList);
   }
 
   Future<void> handleRequest(HttpRequest request) async {
@@ -47,6 +55,22 @@ class Router {
 
       if (match != null && handler != null) {
         try {
+          // middleware handler
+          for (Middleware val in _mainMiddlewares) {
+            Response middlewareRes =
+                await val.handle(Request(request, match, jsonBody));
+
+            if (middlewareRes.isNext == false) {
+              request.response
+                ..statusCode = middlewareRes.statusCode
+                ..headers.contentType = ContentType.json
+                ..write(jsonEncode(middlewareRes.data))
+                ..close();
+              return;
+            }
+          }
+
+          // request handler
           Response response = await handler(Request(request, match, jsonBody));
           request.response
             ..statusCode = response.statusCode

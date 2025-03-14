@@ -1,17 +1,21 @@
 import 'dart:io';
 
 import 'package:sirius/src/logging.dart';
+import 'package:sirius/src/middleware.dart';
 
 import 'constants.dart';
 import 'request.dart';
 import 'response.dart';
 import 'router.dart';
 
-class Server {
+class Sirius {
   final Map<String, Map<String, Future<Response> Function(Request r)>>
       _routesMap = {};
+  final List<Middleware> _middlewaresList = [];
 
   final Router _router = Router();
+
+  HttpServer? _server;
 
   String _autoAddSlash(String path) {
     if (path.startsWith("/")) {
@@ -20,26 +24,17 @@ class Server {
     return "/$path";
   }
 
-  void group(String prefix, void Function(Server server) callback) {
+  void use(Middleware middleware) {
+    _middlewaresList.add(middleware);
+  }
+
+  void group(String prefix, void Function(Sirius sirius) callback) {
     prefix = _autoAddSlash(prefix);
 
-    Server groupRoutes = Server();
+    Sirius groupRoutes = Sirius();
     callback(groupRoutes);
 
     groupRoutes._routesMap.forEach((key, value) {
-      // String newPath = "$prefix$key";
-
-      // if (_routesMap.containsKey(newPath)) {
-      //   // value.forEach((key2, value2) {
-      //   //   if (_routesMap[newPath]!.containsKey(key2)) {
-      //   //     throwError(
-      //   //         "Path {$newPath} with method {$key2} is already registered.");
-      //   //   } else {
-      //   //     _routesMap[newPath]![key2] = value2;
-      //   //   }
-      //   // });
-      // }
-
       _routesMap["$prefix$key"] = value;
     });
   }
@@ -100,15 +95,24 @@ class Server {
     _routesMap[path] = {DELETE: handler};
   }
 
-  Future<void> start({int port = 8070}) async {
-    _router.register(_routesMap);
+  Future<void> start({int port = 8070, Function()? callback}) async {
+    _router.registerRoutes(_routesMap);
+    _router.registerMiddlewares(_middlewaresList);
 
-    var server = await HttpServer.bind(InternetAddress.anyIPv4, port);
+    _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 
-    print("Server is running on http://${server.address.host}:$port");
+    if (callback != null) {
+      callback();
+    }
 
-    await for (HttpRequest r in server) {
-      _router.handleRequest(r);
+    await for (HttpRequest request in _server!) {
+      _router.handleRequest(request);
+    }
+  }
+
+  Future<void> close() async {
+    if (_server != null) {
+      await _server!.close();
     }
   }
 }

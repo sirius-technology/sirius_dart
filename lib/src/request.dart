@@ -4,8 +4,11 @@ class Request {
   final HttpRequest _request;
   final Map<String, String> _pathVariables;
   final Map<String, dynamic>? _body;
+  late String method;
 
-  Request(this._request, this._pathVariables, this._body);
+  Request(this._request, this._pathVariables, this._body) {
+    method = _request.method;
+  }
 
   /// Get all path variables
   Map<String, String> get allPathVariables => _pathVariables;

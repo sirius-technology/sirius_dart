@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:mysql1/mysql1.dart';
 import 'package:sirius/src/databases/mysql_database.dart';
-import 'package:sirius/src/databases/postgresql_database.dart';
 import 'package:sirius/src/enums/database_drivers.dart';
 import 'package:sirius/src/logging.dart';
 
