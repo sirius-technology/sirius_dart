@@ -1,26 +1,22 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:sirius/src/middleware.dart';
+import 'package:sirius/src/helpers/logging.dart';
 
 import 'constants.dart';
 import 'request.dart';
 import 'response.dart';
 
-class Router {
-  final Map<String, Map<String, Future<Response> Function(Request r)>>
+class Handler {
+  final Map<String, Map<String, List<Future<Response> Function(Request r)>>>
       _mainRoutes = {};
 
-  final List<Middleware> _mainMiddlewares = [];
-
   void registerRoutes(
-      Map<String, Map<String, Future<Response> Function(Request r)>>
+      Map<String, Map<String, List<Future<Response> Function(Request r)>>>
           routesMap) {
     _mainRoutes.addAll(routesMap);
-  }
 
-  void registerMiddlewares(List<Middleware> middlewaresList) {
-    _mainMiddlewares.addAll(middlewaresList);
+    logRoutes(_mainRoutes);
   }
 
   Future<void> handleRequest(HttpRequest request) async {
@@ -46,37 +42,31 @@ class Router {
       }
     }
 
-    for (MapEntry<String, Map<String, Future<Response> Function(Request r)>> val
+    for (MapEntry<String,
+            Map<String, List<Future<Response> Function(Request r)>>> val
         in _mainRoutes.entries) {
       final String routePath = val.key;
-      final Future<Response> Function(Request r)? handler = val.value[method];
+      final List<Future<Response> Function(Request r)>? middelwareHandlerList =
+          val.value[method];
 
       final Map<String, String>? match = _matchRoute(routePath, uriPath);
 
-      if (match != null && handler != null) {
+      if (match != null && middelwareHandlerList != null) {
         try {
-          // middleware handler
-          for (Middleware val in _mainMiddlewares) {
-            Response middlewareRes =
-                await val.handle(Request(request, match, jsonBody));
-
-            if (middlewareRes.isNext == false) {
+          for (Future<Response> Function(Request r) value
+              in middelwareHandlerList) {
+            Response response = await value(Request(request, match, jsonBody));
+            if (response.isNext == true) {
+              continue;
+            } else {
               request.response
-                ..statusCode = middlewareRes.statusCode
+                ..statusCode = response.statusCode
                 ..headers.contentType = ContentType.json
-                ..write(jsonEncode(middlewareRes.data))
+                ..write(jsonEncode(response.data))
                 ..close();
-              return;
+              break;
             }
           }
-
-          // request handler
-          Response response = await handler(Request(request, match, jsonBody));
-          request.response
-            ..statusCode = response.statusCode
-            ..headers.contentType = ContentType.json
-            ..write(jsonEncode(response.data))
-            ..close();
           return;
         } catch (e) {
           request.response

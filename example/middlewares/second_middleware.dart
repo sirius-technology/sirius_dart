@@ -5,6 +5,7 @@ import 'package:sirius/src/response.dart';
 class SecondMiddleware extends Middleware {
   @override
   Future<Response> handle(Request request) async {
-    return Response().next();
+    print("Second middleware --->>> ");
+    return Response().send({});
   }
 }

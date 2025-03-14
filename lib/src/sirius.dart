@@ -1,19 +1,24 @@
 import 'dart:io';
 
-import 'package:sirius/src/logging.dart';
+import 'package:sirius/src/helpers/logging.dart';
 import 'package:sirius/src/middleware.dart';
 
 import 'constants.dart';
 import 'request.dart';
 import 'response.dart';
-import 'router.dart';
+import 'handler.dart';
 
 class Sirius {
-  final Map<String, Map<String, Future<Response> Function(Request r)>>
+  final Map<String,
+          Map<String, List<Future<Response> Function(Request request)>>>
       _routesMap = {};
-  final List<Middleware> _middlewaresList = [];
 
-  final Router _router = Router();
+  final List<Future<Response> Function(Request request)> _beforeMiddlewareList =
+      [];
+  final List<Future<Response> Function(Request request)> _afterMiddlewareList =
+      [];
+
+  final Handler _handler = Handler();
 
   HttpServer? _server;
 
@@ -24,14 +29,22 @@ class Sirius {
     return "/$path";
   }
 
-  void use(Middleware middleware) {
-    _middlewaresList.add(middleware);
+  void useBefore(Middleware middleware) {
+    _beforeMiddlewareList.add(middleware.handle);
+  }
+
+  void useAfter(Middleware middleware) {
+    _afterMiddlewareList.add(middleware.handle);
   }
 
   void group(String prefix, void Function(Sirius sirius) callback) {
     prefix = _autoAddSlash(prefix);
 
     Sirius groupRoutes = Sirius();
+
+    groupRoutes._beforeMiddlewareList.addAll(_beforeMiddlewareList);
+    groupRoutes._afterMiddlewareList.addAll(_afterMiddlewareList);
+
     callback(groupRoutes);
 
     groupRoutes._routesMap.forEach((key, value) {
@@ -41,63 +54,45 @@ class Sirius {
 
   void get(String path, Future<Response> Function(Request request) handler) {
     path = _autoAddSlash(path);
-
-    if (_routesMap.containsKey(path)) {
-      if (_routesMap[path]!.containsKey(GET)) {
-        throwError("path {$path} and method {$POST} is already registered.");
-      } else {
-        _routesMap[path]![GET] = handler;
-      }
-      return;
-    }
-    _routesMap[path] = {GET: handler};
+    _addRoute(path, GET, handler);
   }
 
   void post(String path, Future<Response> Function(Request request) handler) {
     path = _autoAddSlash(path);
-
-    if (_routesMap.containsKey(path)) {
-      if (_routesMap[path]!.containsKey(POST)) {
-        throwError("path {$path} and method {$POST} is already registered.");
-      } else {
-        _routesMap[path]![POST] = handler;
-      }
-      return;
-    }
-    _routesMap[path] = {POST: handler};
+    _addRoute(path, POST, handler);
   }
 
   void put(String path, Future<Response> Function(Request request) handler) {
     path = _autoAddSlash(path);
-
-    if (_routesMap.containsKey(path)) {
-      if (_routesMap[path]!.containsKey(PUT)) {
-        throwError("path {$path} and method {$PUT} is already registered.");
-      } else {
-        _routesMap[path]![PUT] = handler;
-      }
-      return;
-    }
-    _routesMap[path] = {PUT: handler};
+    _addRoute(path, PUT, handler);
   }
 
   void delete(String path, Future<Response> Function(Request request) handler) {
     path = _autoAddSlash(path);
+    _addRoute(path, DELETE, handler);
+  }
+
+  void _addRoute(String path, String method,
+      Future<Response> Function(Request request) handler) {
+    List<Future<Response> Function(Request request)> middlewareHandlerList = [
+      ..._beforeMiddlewareList,
+      handler,
+      ..._afterMiddlewareList,
+    ];
 
     if (_routesMap.containsKey(path)) {
-      if (_routesMap[path]!.containsKey(DELETE)) {
-        throwError("path {$path} and method {$DELETE} is already registered.");
+      if (_routesMap[path]!.containsKey(method)) {
+        throwError("path {$path} and method {$method} is already registered.");
       } else {
-        _routesMap[path]![DELETE] = handler;
+        _routesMap[path]![method] = middlewareHandlerList;
       }
       return;
     }
-    _routesMap[path] = {DELETE: handler};
+    _routesMap[path] = {method: middlewareHandlerList};
   }
 
   Future<void> start({int port = 8070, Function()? callback}) async {
-    _router.registerRoutes(_routesMap);
-    _router.registerMiddlewares(_middlewaresList);
+    _handler.registerRoutes(_routesMap);
 
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 
@@ -106,7 +101,7 @@ class Sirius {
     }
 
     await for (HttpRequest request in _server!) {
-      _router.handleRequest(request);
+      _handler.handleRequest(request);
     }
   }
 

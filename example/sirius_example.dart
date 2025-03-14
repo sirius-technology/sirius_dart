@@ -15,16 +15,16 @@ Future<void> main() async {
 
   Sirius app = Sirius();
 
-  app.use(FirstMiddleware());
+  app.useBefore(FirstMiddleware());
 
-  app.get("/api", (Request r) async {
-    return Response().send({"b": 0});
+  app.get("api", (Request r) async {
+    return Response().send({"b": 2});
   });
 
   app.group("user", (route) {
-    route.use(SecondMiddleware());
-    route.get("get", (Request r) async {
-      return Response().send({"user": 0});
+    route.useAfter(SecondMiddleware());
+    route.get("find", (Request r) async {
+      return Response().next();
     });
   });
 

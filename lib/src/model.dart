@@ -1,6 +1,6 @@
 import 'package:mysql1/mysql1.dart';
 import 'package:sirius/src/query_builder.dart';
-import 'logging.dart';
+import 'helpers/logging.dart';
 import 'databases/mysql_database.dart';
 
 abstract class Model extends QueryBuilder {
