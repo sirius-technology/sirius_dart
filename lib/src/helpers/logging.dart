@@ -28,7 +28,7 @@ void logMap(Map<String, dynamic> map) {
   });
 }
 
-void logRoutes(
+void logMap2(
     Map<String, Map<String, List<Future<Response> Function(Request request)>>>
         routes) {
   final converted = routes.map((key, value) {

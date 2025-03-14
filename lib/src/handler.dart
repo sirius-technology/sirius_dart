@@ -15,8 +15,6 @@ class Handler {
       Map<String, Map<String, List<Future<Response> Function(Request r)>>>
           routesMap) {
     _mainRoutes.addAll(routesMap);
-
-    logRoutes(_mainRoutes);
   }
 
   Future<void> handleRequest(HttpRequest request) async {
