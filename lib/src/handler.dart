@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:sirius/src/helpers/logging.dart';
-
 import 'constants.dart';
 import 'request.dart';
 import 'response.dart';

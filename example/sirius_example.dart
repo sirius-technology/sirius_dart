@@ -1,38 +1,32 @@
 import 'package:sirius/sirius.dart';
-
-import 'middlewares/first_middleware.dart';
-import 'middlewares/second_middleware.dart';
+import 'package:sirius/src/validation_rules.dart';
+import 'package:sirius/src/validator.dart';
 
 Future<void> main() async {
-  DatabaseConfig.driver = DatabaseDrivers.MYSQL;
-  DatabaseConfig.host = "localhost";
-  DatabaseConfig.port = 3306;
-  DatabaseConfig.user = "root";
-  DatabaseConfig.password = "Somu1999";
-  DatabaseConfig.database = "dart_backend";
-
-  await DatabaseConfig.initialize();
-
   Sirius app = Sirius();
 
-  app.useBefore(FirstMiddleware());
+  app.post("api", (Request request) async {
+    Map<String, ValidationRules> rules = {
+      "name": ValidationRules(),
+      "age": ValidationRules(),
+      "email": ValidationRules(),
+    };
 
-  app.get("api", (Request r) async {
-    return Response().send({"b": 2});
-  });
+    Validator validator = Validator(request, rules);
 
-  app.group("user", (route) {
-    route.useAfter(SecondMiddleware());
-    route.get("find", (Request r) async {
-      return Response().next();
-    });
+    if (!validator.validate()) {
+      return Response().send({});
+    }
+
+    return Response().send(request.jsonBody);
   });
 
   app.start(
-      port: 9000,
-      callback: () {
-        print("Server is running port 9000");
-      });
+    port: 9000,
+    callback: (server) {
+      print("Server is running");
+    },
+  );
 
   await fileWatcher("example/sirius_example.dart", callback: () {
     app.close();

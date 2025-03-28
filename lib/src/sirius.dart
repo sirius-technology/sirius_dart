@@ -91,13 +91,14 @@ class Sirius {
     _routesMap[path] = {method: middlewareHandlerList};
   }
 
-  Future<void> start({int port = 8070, Function()? callback}) async {
+  Future<void> start(
+      {int port = 8070, Function(HttpServer server)? callback}) async {
     _handler.registerRoutes(_routesMap);
 
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 
     if (callback != null) {
-      callback();
+      callback(_server!);
     }
 
     await for (HttpRequest request in _server!) {
