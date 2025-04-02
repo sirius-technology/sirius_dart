@@ -58,7 +58,16 @@ class Handler {
               request.response
                 ..statusCode = response.statusCode
                 ..headers.contentType = ContentType.json
-                ..write(jsonEncode(response.data))
+                ..write(jsonEncode(
+                  response.data,
+                  // for handling object jsons conversion
+                  toEncodable: (nonEncodable) {
+                    if (nonEncodable is DateTime) {
+                      return nonEncodable.toIso8601String();
+                    }
+                    return nonEncodable.toString();
+                  },
+                ))
                 ..close();
               break;
             }

@@ -1,42 +1,25 @@
-// import 'package:sirius/sirius.dart';
-// import 'package:sirius/src/validation_rules.dart';
-// import 'package:sirius/src/validator.dart';
+import 'package:sirius_backend/sirius_backend.dart';
 
-// Future<void> main() async {
-//   Sirius app = Sirius();
+Future<void> main() async {
+  Sirius app = Sirius();
 
-//   app.post("api", (Request request) async {
-//     Map<String, ValidationRules> rules = {
-//       "name": ValidationRules(
-//         required: required(),
-//         validEmail: validEmail(),
-//       ),
-//       "age": ValidationRules(
-//         dataType: dataType(DataTypes.NUMBER),
-//       ),
-//       "email": ValidationRules(
-//         validEmail: validEmail(),
-//         validDate: validDate(null, ""),
-//       ),
-//     };
+  app.post("/", (Request request) async {
+    Map<String, dynamic> data = {
+      "name": "Somesh",
+      "date": DateTime.now(),
+    };
 
-//     Validator validator = Validator(request, rules);
+    return Response().send(data);
+  });
 
-//     if (!validator.validate()) {
-//       return Response().send({});
-//     }
+  app.start(
+    port: 9000,
+    callback: (server) {
+      print("Server is running");
+    },
+  );
 
-//     return Response().send(request.jsonBody);
-//   });
-
-//   app.start(
-//     port: 9000,
-//     callback: (server) {
-//       print("Server is running");
-//     },
-//   );
-
-//   await fileWatcher("example/sirius_example.dart", callback: () {
-//     app.close();
-//   });
-// }
+  await fileWatcher("example/sirius_example.dart", callback: () {
+    app.close();
+  });
+}
