@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:sirius/sirius.dart';
+import 'package:sirius_backend/sirius.dart';
 
 void logError(String message) {
   print('\x1B[31m[ERROR] $message\x1B[0m'); // 31 = Red Color

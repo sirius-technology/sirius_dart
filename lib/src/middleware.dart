@@ -1,4 +1,4 @@
-import 'package:sirius/sirius.dart';
+import 'package:sirius_backend/sirius.dart';
 
 abstract class Middleware {
   Future<Response> handle(Request request);

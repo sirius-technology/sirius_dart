@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:sirius/src/helpers/logging.dart';
-import 'package:sirius/src/middleware.dart';
+import 'package:sirius_backend/src/helpers/logging.dart';
+import 'package:sirius_backend/src/middleware.dart';
 
 import 'constants.dart';
 import 'request.dart';
