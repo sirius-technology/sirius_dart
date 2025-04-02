@@ -1,34 +1,42 @@
-import 'package:sirius/sirius.dart';
-import 'package:sirius/src/validation_rules.dart';
-import 'package:sirius/src/validator.dart';
+// import 'package:sirius/sirius.dart';
+// import 'package:sirius/src/validation_rules.dart';
+// import 'package:sirius/src/validator.dart';
 
-Future<void> main() async {
-  Sirius app = Sirius();
+// Future<void> main() async {
+//   Sirius app = Sirius();
 
-  app.post("api", (Request request) async {
-    Map<String, ValidationRules> rules = {
-      "name": ValidationRules(),
-      "age": ValidationRules(),
-      "email": ValidationRules(),
-    };
+//   app.post("api", (Request request) async {
+//     Map<String, ValidationRules> rules = {
+//       "name": ValidationRules(
+//         required: required(),
+//         validEmail: validEmail(),
+//       ),
+//       "age": ValidationRules(
+//         dataType: dataType(DataTypes.NUMBER),
+//       ),
+//       "email": ValidationRules(
+//         validEmail: validEmail(),
+//         validDate: validDate(null, ""),
+//       ),
+//     };
 
-    Validator validator = Validator(request, rules);
+//     Validator validator = Validator(request, rules);
 
-    if (!validator.validate()) {
-      return Response().send({});
-    }
+//     if (!validator.validate()) {
+//       return Response().send({});
+//     }
 
-    return Response().send(request.jsonBody);
-  });
+//     return Response().send(request.jsonBody);
+//   });
 
-  app.start(
-    port: 9000,
-    callback: (server) {
-      print("Server is running");
-    },
-  );
+//   app.start(
+//     port: 9000,
+//     callback: (server) {
+//       print("Server is running");
+//     },
+//   );
 
-  await fileWatcher("example/sirius_example.dart", callback: () {
-    app.close();
-  });
-}
+//   await fileWatcher("example/sirius_example.dart", callback: () {
+//     app.close();
+//   });
+// }

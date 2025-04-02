@@ -104,7 +104,6 @@ class Handler {
         return null;
       }
     }
-
     return pathVar;
   }
 }
