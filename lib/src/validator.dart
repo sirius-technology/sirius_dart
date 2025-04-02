@@ -1,4 +1,4 @@
-import 'package:sirius_backend/sirius.dart';
+import 'package:sirius_backend/sirius_backend.dart';
 import 'validation_rules.dart';
 
 class Validator {
