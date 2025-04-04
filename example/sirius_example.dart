@@ -1,15 +1,26 @@
+import 'dart:io';
+
 import 'package:sirius_backend/sirius_backend.dart';
 
 Future<void> main() async {
   Sirius app = Sirius();
 
-  app.post("/", (Request request) async {
+  app.get("web", (Request request) async {
     Map<String, dynamic> data = {
       "name": "Somesh",
       "date": DateTime.now(),
     };
 
     return Response().send(data);
+  });
+
+  app.webSocket("socket", (WebSocket socket) {
+    socket.listen((onData) {
+      Future.delayed(Duration(seconds: 2)).then((onValue) {
+        socket.add("Sirius : $onData");
+        // socket.close(1, "NO REASON");
+      });
+    });
   });
 
   app.start(

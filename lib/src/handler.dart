@@ -8,14 +8,39 @@ import 'response.dart';
 class Handler {
   final Map<String, Map<String, List<Future<Response> Function(Request r)>>>
       _mainRoutes = {};
+  final Map<String, void Function(WebSocket socket)> _mainSocketRoutes = {};
 
   void registerRoutes(
       Map<String, Map<String, List<Future<Response> Function(Request r)>>>
-          routesMap) {
+          routesMap,
+      Map<String, void Function(WebSocket socket)> socketRoutesMap) {
     _mainRoutes.addAll(routesMap);
+    _mainSocketRoutes.addAll(socketRoutesMap);
   }
 
-  Future<void> handleRequest(HttpRequest request) async {
+  void handleRequest(HttpRequest request) {
+    if (_mainSocketRoutes.containsKey(request.uri.path) &&
+        WebSocketTransformer.isUpgradeRequest(request)) {
+      _handleSocketRequest(request);
+    } else {
+      _handleHttpRequest(request);
+    }
+  }
+
+  void _handleSocketRequest(HttpRequest request) {
+    WebSocketTransformer.upgrade(request).then((WebSocket socket) {
+      // calling websocket functions
+      _mainSocketRoutes[request.uri.path]!(socket);
+    }).catchError((e) {
+      request.response
+        ..statusCode = HttpStatus.internalServerError
+        ..headers.contentType = ContentType.json
+        ..write(_errorResponseData(e.toString()))
+        ..close();
+    });
+  }
+
+  Future<void> _handleHttpRequest(HttpRequest request) async {
     final String uriPath = request.uri.path;
     final String method = request.method;
 

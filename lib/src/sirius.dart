@@ -13,6 +13,8 @@ class Sirius {
           Map<String, List<Future<Response> Function(Request request)>>>
       _routesMap = {};
 
+  final Map<String, void Function(WebSocket socket)> _socketRoutesMap = {};
+
   final List<Future<Response> Function(Request request)> _beforeMiddlewareList =
       [];
   final List<Future<Response> Function(Request request)> _afterMiddlewareList =
@@ -91,9 +93,19 @@ class Sirius {
     _routesMap[path] = {method: middlewareHandlerList};
   }
 
+  void webSocket(String path, void Function(WebSocket socket) handler) {
+    path = _autoAddSlash(path);
+
+    if (_socketRoutesMap.containsKey(path)) {
+      throwError("WebSocket path {$path} is already registered.");
+    } else {
+      _socketRoutesMap[path] = handler;
+    }
+  }
+
   Future<void> start(
       {int port = 8070, Function(HttpServer server)? callback}) async {
-    _handler.registerRoutes(_routesMap);
+    _handler.registerRoutes(_routesMap, _socketRoutesMap);
 
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 

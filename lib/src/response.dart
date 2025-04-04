@@ -1,7 +1,11 @@
 import 'dart:io';
 
+// CHANGE : Change structure of Response Class
+//
+//
+//
 class Response {
-  Map<String, dynamic>? data;
+  dynamic data;
   late int statusCode = HttpStatus.ok;
   bool isNext = false;
 
@@ -10,7 +14,7 @@ class Response {
     return this;
   }
 
-  Response send(Map<String, dynamic>? data) {
+  Response send(dynamic data) {
     this.data = data;
     return this;
   }
