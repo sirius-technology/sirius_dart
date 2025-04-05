@@ -1,26 +1,17 @@
 import 'dart:io';
 
-// CHANGE : Change structure of Response Class
-//
-//
-//
 class Response {
   dynamic data;
-  late int statusCode = HttpStatus.ok;
+  int statusCode = HttpStatus.ok;
   bool isNext = false;
 
-  Response status(int statusCode) {
-    this.statusCode = statusCode;
-    return this;
+  Response(this.data, this.statusCode, {this.isNext = false});
+
+  static Response send(dynamic data, {int status = HttpStatus.ok}) {
+    return Response(data, status);
   }
 
-  Response send(dynamic data) {
-    this.data = data;
-    return this;
-  }
-
-  Response next() {
-    isNext = true;
-    return this;
+  static Response next() {
+    return Response(null, HttpStatus.ok, isNext: true);
   }
 }

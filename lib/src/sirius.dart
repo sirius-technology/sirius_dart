@@ -42,15 +42,18 @@ class Sirius {
   void group(String prefix, void Function(Sirius sirius) callback) {
     prefix = _autoAddSlash(prefix);
 
-    Sirius groupRoutes = Sirius();
+    Sirius siriusGroup = Sirius();
 
-    groupRoutes._beforeMiddlewareList.addAll(_beforeMiddlewareList);
-    groupRoutes._afterMiddlewareList.addAll(_afterMiddlewareList);
+    siriusGroup._beforeMiddlewareList.addAll(_beforeMiddlewareList);
+    siriusGroup._afterMiddlewareList.addAll(_afterMiddlewareList);
 
-    callback(groupRoutes);
+    callback(siriusGroup);
 
-    groupRoutes._routesMap.forEach((key, value) {
+    siriusGroup._routesMap.forEach((key, value) {
       _routesMap["$prefix$key"] = value;
+    });
+    siriusGroup._socketRoutesMap.forEach((key, value) {
+      _socketRoutesMap["$prefix$key"] = value;
     });
   }
 
