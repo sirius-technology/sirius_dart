@@ -57,31 +57,80 @@ class Sirius {
     });
   }
 
-  void get(String path, Future<Response> Function(Request request) handler) {
+  void get(String path, Future<Response> Function(Request request) handler,
+      {List<Middleware> useBefore = const [],
+      List<Middleware> useAfter = const []}) {
     path = _autoAddSlash(path);
-    _addRoute(path, GET, handler);
+
+    _addRoute(
+      path,
+      GET,
+      handler,
+      useBefore,
+      useAfter,
+    );
   }
 
-  void post(String path, Future<Response> Function(Request request) handler) {
+  void post(String path, Future<Response> Function(Request request) handler,
+      {List<Middleware> useBefore = const [],
+      List<Middleware> useAfter = const []}) {
     path = _autoAddSlash(path);
-    _addRoute(path, POST, handler);
+
+    _addRoute(
+      path,
+      POST,
+      handler,
+      useBefore,
+      useAfter,
+    );
   }
 
-  void put(String path, Future<Response> Function(Request request) handler) {
+  void put(String path, Future<Response> Function(Request request) handler,
+      {List<Middleware> useBefore = const [],
+      List<Middleware> useAfter = const []}) {
     path = _autoAddSlash(path);
-    _addRoute(path, PUT, handler);
+
+    _addRoute(
+      path,
+      PUT,
+      handler,
+      useBefore,
+      useAfter,
+    );
   }
 
-  void delete(String path, Future<Response> Function(Request request) handler) {
+  void delete(String path, Future<Response> Function(Request request) handler,
+      {List<Middleware> useBefore = const [],
+      List<Middleware> useAfter = const []}) {
     path = _autoAddSlash(path);
-    _addRoute(path, DELETE, handler);
+
+    _addRoute(
+      path,
+      DELETE,
+      handler,
+      useBefore,
+      useAfter,
+    );
   }
 
-  void _addRoute(String path, String method,
-      Future<Response> Function(Request request) handler) {
+  void _addRoute(
+    String path,
+    String method,
+    Future<Response> Function(Request request) handler,
+    List<Middleware> beforeMiddlewares,
+    List<Middleware> afterMiddlewares,
+  ) {
+    List<Future<Response> Function(Request request)> beforeRouteMiddlewareList =
+        beforeMiddlewares.map((mw) => mw.handle).toList();
+
+    List<Future<Response> Function(Request request)> afterRouteMiddlewareList =
+        afterMiddlewares.map((mw) => mw.handle).toList();
+
     List<Future<Response> Function(Request request)> middlewareHandlerList = [
       ..._beforeMiddlewareList,
+      ...beforeRouteMiddlewareList,
       handler,
+      ...afterRouteMiddlewareList,
       ..._afterMiddlewareList,
     ];
 

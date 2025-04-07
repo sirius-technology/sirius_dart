@@ -1,37 +1,29 @@
-import 'dart:io';
+// import 'package:sirius_backend/sirius_backend.dart';
 
-import 'package:sirius_backend/sirius_backend.dart';
+// Future<void> main() async {
+//   Sirius app = Sirius();
 
-Future<void> main() async {
-  Sirius app = Sirius();
+//   app.post("api", (Request request) async {
+//     print("1 object");
+//     return Response.next();
+//   }, useAfter: [AppMiddleware()]);
 
-  app.group("api", (r) {
-    r.get("web", (Request request) async {
-      Map<String, dynamic> data = {
-        "name": "Somesh",
-        "date": DateTime.now(),
-      };
+//   app.start(
+//     port: 1234,
+//     callback: (server) {
+//       print("Server is running");
+//     },
+//   );
 
-      return Response.send(data);
-    });
+//   await fileWatcher("example/sirius_example.dart", callback: () {
+//     app.close();
+//   });
+// }
 
-    r.webSocket("socket", (WebSocket socket) {
-      socket.listen((onData) {
-        Future.delayed(Duration(seconds: 2)).then((onValue) {
-          socket.add("Sirius : $onData");
-        });
-      });
-    });
-  });
-
-  app.start(
-    port: 9000,
-    callback: (server) {
-      print("Server is running");
-    },
-  );
-
-  await fileWatcher("example/sirius_example.dart", callback: () {
-    app.close();
-  });
-}
+// class AppMiddleware extends Middleware {
+//   @override
+//   Future<Response> handle(Request request) async {
+//     print("object");
+//     return Response.send(null);
+//   }
+// }
