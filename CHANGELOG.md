@@ -1,3 +1,7 @@
+## 1.0.7
+- More controls in request validation
+## 1.0.6
+- bug fixes
 ## 1.0.5
 - Optimized in middlewares
 ## 1.0.4

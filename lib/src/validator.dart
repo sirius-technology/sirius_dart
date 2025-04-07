@@ -1,5 +1,4 @@
 import 'package:sirius_backend/sirius_backend.dart';
-import 'validation_rules.dart';
 
 class Validator {
   Validator(Request request, this.rules) {
@@ -229,5 +228,6 @@ class Validator {
     return _errorsMap.isEmpty;
   }
 
-  Map get allErrors => _errorsMap;
+  Map<String, String> get getAllErrors => _errorsMap;
+  MapEntry<String, String> get getError => _errorsMap.entries.first;
 }
