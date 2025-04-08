@@ -4,10 +4,12 @@ class Request {
   final HttpRequest _request;
   final Map<String, String> _pathVariables;
   final Map<String, dynamic>? _body;
-  late String method;
+  final Map<String, String> _headers = {};
 
   Request(this._request, this._pathVariables, this._body) {
-    method = _request.method;
+    _request.headers.forEach((key, values) {
+      _headers[key.toLowerCase()] = values.join(', ');
+    });
   }
 
   /// Get all path variables
@@ -22,9 +24,17 @@ class Request {
   /// Get a specific query parameter by key
   String? queryParam(String key) => allQueryParams[key];
 
-  /// Get JSON body as Map<String, dynamic>?
+  /// Get JSON body as `Map<String, dynamic>?`
   Map<String, dynamic>? get jsonBody => _body;
 
   /// Get a specific value from key in JSON body
   dynamic jsonValue(String key) => _body?[key];
+
+  Map<String, String> get headers => _headers;
+
+  String? headerValue(String key) => _headers[key];
+
+  String get method => _request.method;
+
+  HttpRequest get httpRequest => _request;
 }
