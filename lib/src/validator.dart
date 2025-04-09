@@ -1,6 +1,27 @@
 import 'package:sirius_backend/sirius_backend.dart';
 
+/// A utility class to validate incoming request data against
+/// a set of defined [ValidationRules] for each field.
+///
+/// Example usage:
+/// ```dart
+/// Map<String, ValidationRules> rules = {
+///   "email": ValidationRules(required : required()),
+///   "age": ValidationRules(minNumber : minNumber(18)),
+/// };
+///
+/// final validator = Validator(request, rules);
+///
+/// if (!validator.validate()) {
+///   return Response.badRequest(body: validator.getAllErrors);
+/// }
+/// ```
 class Validator {
+  /// Constructs a [Validator] instance with a [Request] and validation [rules].
+  ///
+  /// The request body is parsed as JSON and stored internally.
+  ///
+  /// Throws an [Exception] if the request body is missing or not JSON.
   Validator(Request request, this.rules) {
     _requestMap = request.jsonBody;
   }
@@ -9,6 +30,13 @@ class Validator {
   final Map<String, ValidationRules> rules;
   final Map<String, String> _errorsMap = {};
 
+  /// Validates the request data against the provided rules.
+  ///
+  /// Returns `true` if all fields pass validation, otherwise `false`.
+  ///
+  /// Use [getAllErrors] or [getError] to retrieve the validation error(s).
+  ///
+  /// Throws an [Exception] if a rule expects a specific data type but receives an incompatible value.
   bool validate() {
     _errorsMap.clear();
 
@@ -228,6 +256,27 @@ class Validator {
     return _errorsMap.isEmpty;
   }
 
+  /// Returns a map of all validation errors.
+  ///
+  /// Each key represents the field name, and the value is the error message.
+  ///
+  /// Example output:
+  /// ```dart
+  /// {
+  ///   "email": "Email is required",
+  ///   "age": "Age must be at least 18"
+  /// }
+  /// ```
   Map<String, String> get getAllErrors => _errorsMap;
+
+  /// Returns the first validation error as a [MapEntry].
+  ///
+  /// Useful when only the first error matters, such as for immediate UI feedback.
+  ///
+  /// Example:
+  /// ```dart
+  /// final error = validator.getError;
+  /// print("${error.key} => ${error.value}");
+  /// ```
   MapEntry<String, String> get getError => _errorsMap.entries.first;
 }
