@@ -50,7 +50,11 @@ class Validator {
       ValidationRules rule = val.value;
 
       // Required Validation
-      if (rule.required != null && value == null) {
+      if (rule.required != null) {
+        if (value == null) {
+          _errorsMap[field] = rule.required!.$2 ?? "$field is required";
+          continue;
+        }
         if (rule.required!.$1 == true &&
             value.runtimeType == String &&
             value.isEmpty) {
@@ -58,8 +62,6 @@ class Validator {
               rule.required!.$2 ?? "$field is required and should not be empty";
           continue;
         }
-        _errorsMap[field] = rule.required!.$2 ?? "$field is required";
-        continue;
       }
 
       // Data Type Validation
