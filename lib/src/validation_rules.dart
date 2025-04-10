@@ -13,10 +13,7 @@ import 'enums/date_time_formats.dart';
 /// ```
 class ValidationRules {
   /// Field must not be null.
-  (String?,)? required;
-
-  /// Field must not be empty.
-  (String?,)? filled;
+  (bool, String?)? required;
 
   /// Field must match a specific [DataTypes] type.
   (DataTypes, String?)? dataType;
@@ -48,6 +45,9 @@ class ValidationRules {
   /// Field must be a valid date.
   (DateTimeFormat?, String?)? validDate;
 
+  /// Field must be one of the provided options.
+  (List<dynamic>, String?)? inList;
+
   /// Field must match the given regular expression.
   (String, String?)? regex;
 
@@ -56,7 +56,6 @@ class ValidationRules {
 
   ValidationRules({
     this.required,
-    this.filled,
     this.dataType,
     this.minLength,
     this.maxLength,
@@ -67,6 +66,7 @@ class ValidationRules {
     this.validEmail,
     this.validUrl,
     this.validDate,
+    this.inList,
     this.regex,
     this.callback,
   });
@@ -78,15 +78,8 @@ class ValidationRules {
 /// ```dart
 /// required("This field is required")
 /// ```
-(String?,) required([String? message]) => (message,);
-
-/// Requires the field to be non-empty.
-///
-/// Example:
-/// ```dart
-/// filled("Please fill this field")
-/// ```
-(String?,) filled([String? message]) => (message,);
+(bool, String?) required([bool filled = true, String? message]) =>
+    (filled, message);
 
 /// Validates the data type.
 ///
@@ -103,7 +96,7 @@ class ValidationRules {
 /// ```dart
 /// minLength(3, "At least 3 characters required")
 /// ```
-(int, String?)? minLength(int value, [String? message]) => (value, message);
+(int, String?) minLength(int value, [String? message]) => (value, message);
 
 /// Validates maximum string length.
 ///
@@ -111,7 +104,7 @@ class ValidationRules {
 /// ```dart
 /// maxLength(10, "At most 10 characters allowed")
 /// ```
-(int, String?)? maxLength(int value, [String? message]) => (value, message);
+(int, String?) maxLength(int value, [String? message]) => (value, message);
 
 /// Validates exact string length.
 ///
@@ -119,7 +112,7 @@ class ValidationRules {
 /// ```dart
 /// exactLength(5, "Must be 5 characters")
 /// ```
-(int, String?)? exactLength(int value, [String? message]) => (value, message);
+(int, String?) exactLength(int value, [String? message]) => (value, message);
 
 /// Validates minimum numeric value.
 ///
@@ -127,7 +120,7 @@ class ValidationRules {
 /// ```dart
 /// minNumber(1, "Value must be at least 1")
 /// ```
-(int, String?)? minNumber(int value, [String? message]) => (value, message);
+(int, String?) minNumber(int value, [String? message]) => (value, message);
 
 /// Validates maximum numeric value.
 ///
@@ -135,7 +128,7 @@ class ValidationRules {
 /// ```dart
 /// maxNumber(100, "Cannot exceed 100")
 /// ```
-(int, String?)? maxNumber(int value, [String? message]) => (value, message);
+(int, String?) maxNumber(int value, [String? message]) => (value, message);
 
 /// Validates exact numeric value.
 ///
@@ -143,7 +136,7 @@ class ValidationRules {
 /// ```dart
 /// exactNumber(42, "Value must be 42")
 /// ```
-(int, String?)? exactNumber(int value, [String? message]) => (value, message);
+(int, String?) exactNumber(int value, [String? message]) => (value, message);
 
 /// Validates email format.
 ///
@@ -167,11 +160,23 @@ class ValidationRules {
 /// ```dart
 /// validDate(DateTimeFormat.DATETIME, "Invalid date")
 /// ```
-(DateTimeFormat, String?)? validDate([
+(DateTimeFormat, String?) validDate([
   DateTimeFormat format = DateTimeFormat.DATETIME,
   String? message,
 ]) =>
     (format, message);
+
+/// Validates that the value exists within the provided list of allowed values.
+///
+/// Example:
+/// ```dart
+/// inList(['admin', 'user', 'guest'], "Role must be one of: admin, user, guest")
+/// ```
+///
+/// - [values]: A list of allowed values.
+/// - [message]: Optional custom error message to display when validation fails.
+(List<dynamic>, String?) inList(List<dynamic> values, String? message) =>
+    (values, message);
 
 /// Validates a custom regular expression.
 ///
@@ -179,7 +184,7 @@ class ValidationRules {
 /// ```dart
 /// regex(r'^\\d{4}\$', "Must be a 4-digit number")
 /// ```
-(String, String?)? regex(String pattern, [String? message]) =>
+(String, String?) regex(String pattern, [String? message]) =>
     (pattern, message);
 
 /// Custom validation callback.

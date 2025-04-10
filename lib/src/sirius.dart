@@ -81,33 +81,45 @@ class Sirius {
   }
 
   /// Registers a GET route.
-  void get(String path, Future<Response> Function(Request request) handler,
-      {List<Middleware> useBefore = const [],
-      List<Middleware> useAfter = const []}) {
+  void get(
+    String path,
+    Future<Response> Function(Request request) handler, {
+    List<Middleware> useBefore = const [],
+    List<Middleware> useAfter = const [],
+  }) {
     path = _autoAddSlash(path);
     _addRoute(path, GET, handler, useBefore, useAfter);
   }
 
   /// Registers a POST route.
-  void post(String path, Future<Response> Function(Request request) handler,
-      {List<Middleware> useBefore = const [],
-      List<Middleware> useAfter = const []}) {
+  void post(
+    String path,
+    Future<Response> Function(Request request) handler, {
+    List<Middleware> useBefore = const [],
+    List<Middleware> useAfter = const [],
+  }) {
     path = _autoAddSlash(path);
     _addRoute(path, POST, handler, useBefore, useAfter);
   }
 
   /// Registers a PUT route.
-  void put(String path, Future<Response> Function(Request request) handler,
-      {List<Middleware> useBefore = const [],
-      List<Middleware> useAfter = const []}) {
+  void put(
+    String path,
+    Future<Response> Function(Request request) handler, {
+    List<Middleware> useBefore = const [],
+    List<Middleware> useAfter = const [],
+  }) {
     path = _autoAddSlash(path);
     _addRoute(path, PUT, handler, useBefore, useAfter);
   }
 
   /// Registers a DELETE route.
-  void delete(String path, Future<Response> Function(Request request) handler,
-      {List<Middleware> useBefore = const [],
-      List<Middleware> useAfter = const []}) {
+  void delete(
+    String path,
+    Future<Response> Function(Request request) handler, {
+    List<Middleware> useBefore = const [],
+    List<Middleware> useAfter = const [],
+  }) {
     path = _autoAddSlash(path);
     _addRoute(path, DELETE, handler, useBefore, useAfter);
   }
@@ -164,10 +176,13 @@ class Sirius {
   /// Starts the server on the given [port].
   ///
   /// ```dart
-  /// await sirius.start(port: 3000);
+  /// int port = 3000;
+  /// await sirius.start(port: port); // default port is 3333
   /// ```
-  Future<void> start(
-      {int port = 8070, Function(HttpServer server)? callback}) async {
+  Future<void> start({
+    int port = 3333,
+    Function(HttpServer server)? callback,
+  }) async {
     _handler.registerRoutes(_routesMap, _socketRoutesMap);
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 

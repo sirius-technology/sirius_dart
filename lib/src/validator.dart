@@ -51,13 +51,14 @@ class Validator {
 
       // Required Validation
       if (rule.required != null && value == null) {
-        _errorsMap[field] = rule.required!.$1 ?? "$field is required";
-        continue;
-      }
-
-      // Filled Validation
-      if (rule.filled != null && value.runtimeType == String && value.isEmpty) {
-        _errorsMap[field] = rule.filled!.$1 ?? "$field should not be empty";
+        if (rule.required!.$1 == true &&
+            value.runtimeType == String &&
+            value.isEmpty) {
+          _errorsMap[field] =
+              rule.required!.$2 ?? "$field is required and should not be empty";
+          continue;
+        }
+        _errorsMap[field] = rule.required!.$2 ?? "$field is required";
         continue;
       }
 
@@ -227,6 +228,15 @@ class Validator {
               }
               break;
           }
+        }
+      }
+
+      // In List Validation
+      if (rule.inList != null) {
+        if (!rule.inList!.$1.contains(value)) {
+          _errorsMap[field] = rule.inList!.$2 ??
+              "Value should be one of: ${rule.inList!.$1.join(', ')}";
+          continue;
         }
       }
 
