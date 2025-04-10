@@ -175,7 +175,7 @@ class ValidationRules {
 ///
 /// - [values]: A list of allowed values.
 /// - [message]: Optional custom error message to display when validation fails.
-(List<dynamic>, String?) inList(List<dynamic> values, String? message) =>
+(List<dynamic>, String?) inList(List<dynamic> values, [String? message]) =>
     (values, message);
 
 /// Validates a custom regular expression.
