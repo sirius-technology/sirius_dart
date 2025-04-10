@@ -16,4 +16,7 @@ enum DataTypes {
 
   /// Represents a boolean value, either true or false.
   BOOLEAN,
+
+  /// Represents a object value, sach as {"name" : "Sirius"}
+  OBJECT
 }

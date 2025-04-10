@@ -22,11 +22,9 @@ class Validator {
   /// The request body is parsed as JSON and stored internally.
   ///
   /// Throws an [Exception] if the request body is missing or not JSON.
-  Validator(Request request, this.rules) {
-    _requestMap = request.jsonBody;
-  }
+  Validator(this.fields, this.rules);
 
-  Map<String, dynamic>? _requestMap;
+  Map<String, dynamic> fields;
   final Map<String, ValidationRules> rules;
   final Map<String, String> _errorsMap = {};
 
@@ -40,14 +38,14 @@ class Validator {
   bool validate() {
     _errorsMap.clear();
 
-    if (_requestMap == null) {
-      throw Exception("Request body is missing or not in JSON format.");
-    }
-
     for (MapEntry<String, ValidationRules> val in rules.entries) {
-      var value = _requestMap![val.key];
+      var value = fields[val.key];
       String field = val.key;
       ValidationRules rule = val.value;
+
+      if (rule.nullable && value == null) {
+        continue;
+      }
 
       // Required Validation
       if (rule.required != null) {
@@ -85,6 +83,14 @@ class Validator {
             if (value is! bool) {
               _errorsMap[field] =
                   rule.dataType!.$2 ?? "$field must be a boolean";
+              continue;
+            }
+            break;
+
+          case DataTypes.OBJECT:
+            if (value is! Map<String, dynamic>) {
+              _errorsMap[field] =
+                  rule.dataType!.$2 ?? "$field must be an object";
               continue;
             }
             break;
@@ -235,7 +241,21 @@ class Validator {
       if (rule.inList != null) {
         if (!rule.inList!.$1.contains(value)) {
           _errorsMap[field] = rule.inList!.$2 ??
-              "Value should be one of: ${rule.inList!.$1.join(', ')}";
+              "$field should be one of: ${rule.inList!.$1.join(', ')}";
+          continue;
+        }
+      }
+
+      // Nested Validation
+      if (rule.child != null && rule.child!.isNotEmpty) {
+        if (value is! Map<String, dynamic>) {
+          throw Exception("Invalid data type: '$field' must be an object.");
+        }
+        Validator childValidator = Validator(value, rule.child!);
+        if (!childValidator.validate()) {
+          childValidator.getAllErrors.forEach((key, val) {
+            _errorsMap["$field.$key"] = val;
+          });
           continue;
         }
       }

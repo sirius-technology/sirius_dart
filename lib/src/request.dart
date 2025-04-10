@@ -120,4 +120,16 @@ class Request {
   /// final connectionInfo = request.httpRequest.connectionInfo;
   /// ```
   HttpRequest get httpRequest => _request;
+
+  /// Merges and returns all fields from path variables, query parameters,
+  /// and JSON body into a single map.
+  ///
+  /// Priority (in case of key conflicts): JSON body > query params > path variables.
+  Map<String, dynamic> getAllFields() {
+    return {
+      ..._pathVariables, // lowest priority
+      ...allQueryParams,
+      ...(jsonBody ?? {}), // highest priority
+    };
+  }
 }

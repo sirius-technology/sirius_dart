@@ -1,3 +1,10 @@
+## 1.0.10
+- Added support for nested child validation in the `Validator` class 🎯  
+  → Use `child` inside `ValidationRules` to validate nested maps  
+  → Error messages now support dot notation for nested fields (e.g. `address.street`)
+- Improved internal `Validator` logic for better error composition and modularity
+- Bug fixes and minor code cleanups
+
 ## 1.0.9
 - Improved and extended documentation across all core components 📚
 - Added example usage to class and method documentation

@@ -15,6 +15,10 @@ class ValidationRules {
   /// Field must not be null.
   (bool, String?)? required;
 
+  /// Whether the field is allowed to be null.
+  /// If true, null values are accepted even if other rules are defined.
+  bool nullable;
+
   /// Field must match a specific [DataTypes] type.
   (DataTypes, String?)? dataType;
 
@@ -48,6 +52,21 @@ class ValidationRules {
   /// Field must be one of the provided options.
   (List<dynamic>, String?)? inList;
 
+  /// Defines nested validation rules for child fields when the current field is a map.
+  ///
+  /// Use this to apply validation to each key inside a nested object.
+  /// Each key in the `Map<String, ValidationRules>` represents a nested field
+  /// and its corresponding validation rules.
+  ///
+  /// Example:
+  /// ```dart
+  /// child: {
+  ///   'street': ValidationRules(required: required()),
+  ///   'zip': ValidationRules(minLength: minLength(5))
+  /// }
+  /// ```
+  Map<String, ValidationRules>? child;
+
   /// Field must match the given regular expression.
   (String, String?)? regex;
 
@@ -56,6 +75,7 @@ class ValidationRules {
 
   ValidationRules({
     this.required,
+    this.nullable = false,
     this.dataType,
     this.minLength,
     this.maxLength,
@@ -67,6 +87,7 @@ class ValidationRules {
     this.validUrl,
     this.validDate,
     this.inList,
+    this.child,
     this.regex,
     this.callback,
   });
