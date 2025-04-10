@@ -1,29 +1,27 @@
 // import 'package:sirius_backend/sirius_backend.dart';
 
-// Future<void> main() async {
-//   Sirius app = Sirius();
+// void main() {
+//   Sirius sirius = Sirius();
 
-//   app.post("api", (Request request) async {
-//     print("1 object");
-//     return Response.next();
-//   }, useAfter: [AppMiddleware()]);
+//   sirius.post("api/partner/register", (Request request) async {
+//     Map<String, ValidationRules> rules = {
+//       "kitchen_type": ValidationRules(
+//           required: required(),
+//           inList: inList(["HOME_KITCHEN", "COMMERCIAL_KITCHEN"]))
+//     };
 
-//   app.start(
-//     port: 1234,
+//     Validator validator = Validator(request, rules);
+
+//     if (!validator.validate()) {
+//       return Response.send(validator.getError.value);
+//     }
+
+//     return Response.send("Success..!");
+//   });
+
+//   sirius.start(
 //     callback: (server) {
-//       print("Server is running");
+//       print("server is running");
 //     },
 //   );
-
-//   await fileWatcher("example/sirius_example.dart", callback: () {
-//     app.close();
-//   });
-// }
-
-// class AppMiddleware extends Middleware {
-//   @override
-//   Future<Response> handle(Request request) async {
-//     print("object");
-//     return Response.send(null);
-//   }
 // }

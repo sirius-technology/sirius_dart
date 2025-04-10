@@ -55,7 +55,7 @@ class Validator {
           _errorsMap[field] = rule.required!.$2 ?? "$field is required";
           continue;
         }
-        if (rule.required!.$1 && value is String && value.isEmpty) {
+        if (rule.required!.$1 && value is String && value.trim().isEmpty) {
           _errorsMap[field] =
               rule.required!.$2 ?? "$field is required and should not be empty";
           continue;
