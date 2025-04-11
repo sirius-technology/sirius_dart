@@ -87,10 +87,17 @@ class Validator {
             }
             break;
 
-          case DataTypes.OBJECT:
+          case DataTypes.MAP:
             if (value is! Map<String, dynamic>) {
               _errorsMap[field] =
                   rule.dataType!.$2 ?? "$field must be an object";
+              continue;
+            }
+            break;
+
+          case DataTypes.LIST:
+            if (value is! List<dynamic>) {
+              _errorsMap[field] = rule.dataType!.$2 ?? "$field must be a list";
               continue;
             }
             break;
@@ -246,12 +253,47 @@ class Validator {
         }
       }
 
-      // Nested Validation
-      if (rule.child != null && rule.child!.isNotEmpty) {
+      // Not In List Validation
+      if (rule.notInList != null) {
+        if (rule.notInList!.$1.contains(value)) {
+          _errorsMap[field] = rule.notInList!.$2 ??
+              "$field must not be one of: ${rule.notInList!.$1.join(', ')}";
+          continue;
+        }
+      }
+
+      // Nested Map Validation
+      if (rule.childMap != null && rule.childMap!.isNotEmpty) {
         if (value is! Map<String, dynamic>) {
           throw Exception("Invalid data type: '$field' must be an object.");
         }
-        Validator childValidator = Validator(value, rule.child!);
+
+        Validator childValidator = Validator(value, rule.childMap!);
+        if (!childValidator.validate()) {
+          childValidator.getAllErrors.forEach((key, val) {
+            _errorsMap["$field.$key"] = val;
+          });
+          continue;
+        }
+      }
+
+      // Nested List Validation
+      if (rule.childList != null && rule.childList!.isNotEmpty) {
+        if (value is! List<dynamic>) {
+          throw Exception("Invalid data type: '$field' must be a list.");
+        }
+
+        Map<String, dynamic> listFieldMap = {
+          for (int i = 0; i < value.length; i++) i.toString(): value[i]
+        };
+
+        Map<String, ValidationRules> listRuleMap = {
+          for (int i = 0; i < rule.childList!.length; i++)
+            i.toString(): rule.childList![i]
+        };
+
+        Validator childValidator = Validator(listFieldMap, listRuleMap);
+
         if (!childValidator.validate()) {
           childValidator.getAllErrors.forEach((key, val) {
             _errorsMap["$field.$key"] = val;

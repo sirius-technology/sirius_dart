@@ -52,6 +52,9 @@ class ValidationRules {
   /// Field must be one of the provided options.
   (List<dynamic>, String?)? inList;
 
+  /// Field must be one of the provided options.
+  (List<dynamic>, String?)? notInList;
+
   /// Defines nested validation rules for child fields when the current field is a map.
   ///
   /// Use this to apply validation to each key inside a nested object.
@@ -65,7 +68,24 @@ class ValidationRules {
   ///   'zip': ValidationRules(minLength: minLength(5))
   /// }
   /// ```
-  Map<String, ValidationRules>? child;
+  Map<String, ValidationRules>? childMap;
+
+  /// Defines nested validation rules for each item in a list when the current field is a list.
+  ///
+  /// Use this to apply validation to each element inside a list. Each item in the list
+  /// is expected to follow the provided `ValidationRules`.
+  ///
+  /// Example:
+  /// ```dart
+  /// childList: [
+  ///   ValidationRules(required: required()),
+  ///   ValidationRules(minLength: minLength(3))
+  /// ]
+  /// ```
+  ///
+  /// Note: If the list contains objects/maps, use `childMap` within each `ValidationRules`
+  /// to define validations for nested fields.
+  List<dynamic>? childList;
 
   /// Field must match the given regular expression.
   (String, String?)? regex;
@@ -87,7 +107,9 @@ class ValidationRules {
     this.validUrl,
     this.validDate,
     this.inList,
-    this.child,
+    this.notInList,
+    this.childMap,
+    this.childList,
     this.regex,
     this.callback,
   });
@@ -197,6 +219,18 @@ class ValidationRules {
 /// - [values]: A list of allowed values.
 /// - [message]: Optional custom error message to display when validation fails.
 (List<dynamic>, String?) inList(List<dynamic> values, [String? message]) =>
+    (values, message);
+
+/// Validates that the value does **not** exist within the provided list of disallowed values.
+///
+/// Example:
+/// ```dart
+/// notInList(['banned', 'restricted'], "This value is not allowed")
+/// ```
+///
+/// - [values]: A list of disallowed values.
+/// - [message]: Optional custom error message to display when validation fails.
+(List<dynamic>, String?) notInList(List<dynamic> values, [String? message]) =>
     (values, message);
 
 /// Validates a custom regular expression.

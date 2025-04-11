@@ -18,5 +18,8 @@ enum DataTypes {
   BOOLEAN,
 
   /// Represents a object value, sach as {"name" : "Sirius"}
-  OBJECT
+  MAP,
+
+  /// Represents a list value, sach as [2, 3, 4, 6]
+  LIST
 }
