@@ -4,32 +4,14 @@
 //   Sirius sirius = Sirius();
 
 //   sirius.post("test", (Request request) async {
-//     Map<String, ValidationRules> rules = {
-//       "fruits": ValidationRules(
-//           required: required(),
-//           dataType: dataType(DataTypes.LIST),
-//           childList: [
-//             ValidationRules(required: required(), exactLength: exactLength(3)),
-//             ValidationRules(
-//                 required: required(),
-//                 dataType: dataType(DataTypes.MAP),
-//                 childMap: {
-//                   "add": ValidationRules(required: required()),
-//                   "plus": ValidationRules(
-//                       required: required(),
-//                       nullable: true,
-//                       exactNumber: exactNumber(2)),
-//                 })
-//           ])
-//     };
-
-//     Validator validator = Validator(request.getAllFields(), rules);
-
-//     if (!validator.validate()) {
-//       return Response.send(validator.getAllErrors);
-//     }
-
 //     return Response.send("Success..!");
+//   });
+
+//   sirius.useBefore(Middle());
+//   sirius.useBefore(Middle2());
+
+//   sirius.post("test1", (Request request) async {
+//     return Response.send(request.receiveData);
 //   });
 
 //   sirius.start(
@@ -41,4 +23,22 @@
 //   fileWatcher("example/sirius_example.dart", callback: () {
 //     sirius.close();
 //   });
+// }
+
+// class Middle extends Middleware {
+//   @override
+//   Future<Response> handle(Request request) async {
+//     print("middleware");
+
+//     return Response.next(passData: "passing");
+//   }
+// }
+
+// class Middle2 extends Middleware {
+//   @override
+//   Future<Response> handle(Request request) async {
+//     print("middleware");
+
+//     return Response.next(passData: "TT");
+//   }
 // }

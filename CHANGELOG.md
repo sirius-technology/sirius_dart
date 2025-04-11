@@ -1,3 +1,6 @@
+## 1.0.12
+- Passing and receiving data through middleware
+
 ## 1.0.11
 - Added some more validation rules
 - Bug fixes and minor code cleanups

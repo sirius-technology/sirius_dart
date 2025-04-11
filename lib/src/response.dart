@@ -15,12 +15,14 @@ class Response {
   dynamic data;
 
   /// The HTTP status code of the response. Defaults to 200 (OK).
-  int statusCode = HttpStatus.ok;
+  int statusCode;
 
   /// A flag that indicates whether the current middleware/controller should pass control to the next.
   ///
   /// If `isNext` is `true`, it means the middleware should call the next handler in the pipeline.
   bool isNext = false;
+
+  dynamic passedData;
 
   /// Creates a new `Response` object with the given [data] and [statusCode].
   ///
@@ -30,7 +32,11 @@ class Response {
   /// ```dart
   /// final customResponse = Response({"result": "done"}, HttpStatus.created);
   /// ```
-  Response(this.data, this.statusCode, {this.isNext = false});
+  Response(
+      [this.data,
+      this.statusCode = HttpStatus.ok,
+      this.isNext = false,
+      this.passedData]);
 
   /// Factory method to create a standard response with optional status code.
   ///
@@ -56,7 +62,8 @@ class Response {
   ///
   /// return Response.next(); // Continue to the next handler
   /// ```
-  static Response next() {
-    return Response(null, HttpStatus.ok, isNext: true);
+
+  static Response next({dynamic passData}) {
+    return Response(null, HttpStatus.ok, true, passData);
   }
 }

@@ -21,6 +21,8 @@ class Request {
   final Map<String, dynamic>? _body;
   final Map<String, String> _headers = {};
 
+  dynamic _passedData;
+
   /// Constructs a [Request] object with an [HttpRequest], path variables, and JSON body.
   ///
   /// Automatically extracts headers into a simplified lowercase map.
@@ -99,6 +101,12 @@ class Request {
   /// final auth = request.headerValue('Authorization');
   /// ```
   String? headerValue(String key) => _headers[key.toLowerCase()];
+
+  set passData(dynamic data) {
+    _passedData = data;
+  }
+
+  dynamic get receiveData => _passedData;
 
   /// Returns the HTTP method of the request (e.g., GET, POST).
   ///

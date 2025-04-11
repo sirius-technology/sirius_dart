@@ -74,9 +74,16 @@ class Handler {
 
       if (match != null && middelwareHandlerList != null) {
         try {
+          Request newRequest = Request(request, match, jsonBody);
+
           for (Future<Response> Function(Request r) value
               in middelwareHandlerList) {
-            Response response = await value(Request(request, match, jsonBody));
+            Response response = await value(newRequest);
+
+            if (response.passedData != null) {
+              newRequest.passData = response.passedData;
+            }
+
             if (response.isNext == true) {
               continue;
             } else {
