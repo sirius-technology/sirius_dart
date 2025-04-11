@@ -1,3 +1,7 @@
+## 1.0.11
+- Added some more validation rules
+- Bug fixes and minor code cleanups
+
 ## 1.0.10
 - Added support for nested child validation in the `Validator` class 🎯  
   → Use `child` inside `ValidationRules` to validate nested maps  

@@ -134,7 +134,8 @@ class Validator {
       // Min Number Validation
       if (rule.minNumber != null) {
         if (value is! num) {
-          throw Exception("Invalid data type: '$field' must be a number.");
+          throw Exception(
+              "Invalid data type: '$field' must be a number for minimum number validation.");
         }
 
         if (value < rule.minNumber!.$1) {
@@ -147,7 +148,8 @@ class Validator {
       // Max Number Validation
       if (rule.maxNumber != null) {
         if (value is! num) {
-          throw Exception("Invalid data type: '$field' must be a number.");
+          throw Exception(
+              "Invalid data type: '$field' must be a number for maximum number validation.");
         }
 
         if (value > rule.maxNumber!.$1) {
@@ -160,7 +162,8 @@ class Validator {
       // Exact Number Validation
       if (rule.exactNumber != null) {
         if (value is! num) {
-          throw Exception("Invalid data type: '$field' must be a number.");
+          throw Exception(
+              "Invalid data type: '$field' must be a number for exact number validation.");
         }
 
         if (value != rule.exactNumber!.$1) {
@@ -173,7 +176,8 @@ class Validator {
       // Email Validation
       if (rule.validEmail != null) {
         if (value is! String) {
-          throw Exception("Invalid data type: '$field' must be a string.");
+          throw Exception(
+              "Invalid data type: '$field' must be a string for email validation.");
         }
 
         RegExp emailRegex =
@@ -187,7 +191,8 @@ class Validator {
       // URL Validation
       if (rule.validUrl != null) {
         if (value is! String) {
-          throw Exception("Invalid data type: '$field' must be a string.");
+          throw Exception(
+              "Invalid data type: '$field' must be a string for url validation.");
         }
 
         RegExp urlRegex = RegExp(
@@ -201,7 +206,8 @@ class Validator {
       // Valid DateTime Validation
       if (rule.validDate != null) {
         if (value is! String) {
-          throw Exception("Invalid data type: '$field' must be a string.");
+          throw Exception(
+              "Invalid data type: '$field' must be a string for datetime validation.");
         }
 
         if (rule.validDate!.$1 == null) {
@@ -265,7 +271,8 @@ class Validator {
       // Nested Map Validation
       if (rule.childMap != null && rule.childMap!.isNotEmpty) {
         if (value is! Map<String, dynamic>) {
-          throw Exception("Invalid data type: '$field' must be an object.");
+          throw Exception(
+              "Invalid data type: '$field' must be an object for nested map validation.");
         }
 
         Validator childValidator = Validator(value, rule.childMap!);
@@ -280,7 +287,8 @@ class Validator {
       // Nested List Validation
       if (rule.childList != null && rule.childList!.isNotEmpty) {
         if (value is! List<dynamic>) {
-          throw Exception("Invalid data type: '$field' must be a list.");
+          throw Exception(
+              "Invalid data type: '$field' must be a List for nested list validation.");
         }
 
         Map<String, dynamic> listFieldMap = {
@@ -305,7 +313,8 @@ class Validator {
       // Custom Regex Validation
       if (rule.regex != null) {
         if (value is! String) {
-          throw Exception("Invalid data type: '$field' must be a string.");
+          throw Exception(
+              "Invalid data type: '$field' must be a string for regex validation.");
         }
         RegExp customRegex = RegExp(rule.regex!.$1);
         if (!customRegex.hasMatch(value)) {
