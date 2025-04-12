@@ -94,7 +94,10 @@ class Request {
   /// ```
   Map<String, String> get headers => _headers;
 
-  /// Returns the value of a specific header by [key] (case-insensitive).
+  /// Returns the value of the specified header by [key], case-insensitive.
+  ///
+  /// Useful for extracting values like authorization tokens or content types
+  /// from incoming requests.
   ///
   /// ### Example
   /// ```dart
@@ -102,10 +105,29 @@ class Request {
   /// ```
   String? headerValue(String key) => _headers[key.toLowerCase()];
 
+  /// Sets custom data to be passed from middleware to subsequent middleware
+  /// or handlers during the request lifecycle.
+  ///
+  /// This is useful for sharing computed values like authentication results,
+  /// decoded tokens, or any request-specific metadata.
+  ///
+  /// ### Example
+  /// ```dart
+  /// request.passData = {"userId": 42};
+  /// ```
   set passData(dynamic data) {
     _passedData = data;
   }
 
+  /// Retrieves data passed earlier in the middleware or handler chain.
+  ///
+  /// Use this to access custom information stored using [passData].
+  ///
+  /// ### Example
+  /// ```dart
+  /// final data = request.receiveData;
+  /// final userId = data?['userId'];
+  /// ```
   dynamic get receiveData => _passedData;
 
   /// Returns the HTTP method of the request (e.g., GET, POST).

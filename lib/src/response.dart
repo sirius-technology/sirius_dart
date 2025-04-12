@@ -50,9 +50,14 @@ class Response {
     return Response(data, status);
   }
 
-  /// Creates a response that signals to pass control to the next handler.
+  /// Returns a [Response] object that signals the framework to continue
+  /// to the next middleware or final handler.
   ///
-  /// Useful in middleware to allow further processing.
+  /// This is typically used inside middleware when you want to allow
+  /// the request to proceed without stopping the processing chain.
+  ///
+  /// You can optionally pass data using [passData], which will be accessible
+  /// to subsequent middleware or handlers via the request context.
   ///
   /// ### Example
   /// ```dart
@@ -60,9 +65,9 @@ class Response {
   ///   return Response.send({"error": "Unauthorized"}, status: HttpStatus.unauthorized);
   /// }
   ///
-  /// return Response.next(); // Continue to the next handler
+  /// // Continue to the next middleware or handler
+  /// return Response.next(passData: {"userId": 123});
   /// ```
-
   static Response next({dynamic passData}) {
     return Response(null, HttpStatus.ok, true, passData);
   }

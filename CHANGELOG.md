@@ -1,5 +1,9 @@
+## 1.0.13
+- Bug fixes
+
 ## 1.0.12
 - Passing and receiving data through middleware
+- Minor optimization in handler
 
 ## 1.0.11
 - Added some more validation rules
