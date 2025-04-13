@@ -61,6 +61,9 @@ class Handler {
           ..close();
         return;
       }
+    } else {
+      throw Exception(
+          "Unsupported HTTP method '$method' or missing 'application/json' content type for JSON request.");
     }
 
     for (MapEntry<String,

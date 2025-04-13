@@ -1,3 +1,7 @@
+## 1.0.14
+- Refactored validation rules to use named parameters instead of positional ones for improved readability and flexibility
+- Improved exception messages for better clarity and developer understanding
+
 ## 1.0.13
 - Bug fixes
 

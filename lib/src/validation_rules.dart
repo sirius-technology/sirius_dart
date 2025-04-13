@@ -121,7 +121,7 @@ class ValidationRules {
 /// ```dart
 /// required("This field is required")
 /// ```
-(bool, String?) required([bool filled = true, String? message]) =>
+(bool, String?) required({bool filled = true, String? message}) =>
     (filled, message);
 
 /// Validates the data type.
@@ -130,7 +130,7 @@ class ValidationRules {
 /// ```dart
 /// dataType(DataTypes.STRING, "Must be a string")
 /// ```
-(DataTypes, String?) dataType(DataTypes type, [String? message]) =>
+(DataTypes, String?) dataType(DataTypes type, {String? message}) =>
     (type, message);
 
 /// Validates minimum string length.
@@ -139,7 +139,7 @@ class ValidationRules {
 /// ```dart
 /// minLength(3, "At least 3 characters required")
 /// ```
-(int, String?) minLength(int value, [String? message]) => (value, message);
+(int, String?) minLength(int lenght, {String? message}) => (lenght, message);
 
 /// Validates maximum string length.
 ///
@@ -147,7 +147,7 @@ class ValidationRules {
 /// ```dart
 /// maxLength(10, "At most 10 characters allowed")
 /// ```
-(int, String?) maxLength(int value, [String? message]) => (value, message);
+(int, String?) maxLength(int lenght, {String? message}) => (lenght, message);
 
 /// Validates exact string length.
 ///
@@ -155,7 +155,7 @@ class ValidationRules {
 /// ```dart
 /// exactLength(5, "Must be 5 characters")
 /// ```
-(int, String?) exactLength(int value, [String? message]) => (value, message);
+(int, String?) exactLength(int lenght, {String? message}) => (lenght, message);
 
 /// Validates minimum numeric value.
 ///
@@ -163,7 +163,7 @@ class ValidationRules {
 /// ```dart
 /// minNumber(1, "Value must be at least 1")
 /// ```
-(int, String?) minNumber(int value, [String? message]) => (value, message);
+(int, String?) minNumber(int number, {String? message}) => (number, message);
 
 /// Validates maximum numeric value.
 ///
@@ -171,7 +171,7 @@ class ValidationRules {
 /// ```dart
 /// maxNumber(100, "Cannot exceed 100")
 /// ```
-(int, String?) maxNumber(int value, [String? message]) => (value, message);
+(int, String?) maxNumber(int number, {String? message}) => (number, message);
 
 /// Validates exact numeric value.
 ///
@@ -179,7 +179,7 @@ class ValidationRules {
 /// ```dart
 /// exactNumber(42, "Value must be 42")
 /// ```
-(int, String?) exactNumber(int value, [String? message]) => (value, message);
+(int, String?) exactNumber(int number, {String? message}) => (number, message);
 
 /// Validates email format.
 ///
@@ -187,7 +187,7 @@ class ValidationRules {
 /// ```dart
 /// validEmail("Invalid email format")
 /// ```
-(String?,) validEmail([String? message]) => (message,);
+(String?,) validEmail({String? message}) => (message,);
 
 /// Validates URL format.
 ///
@@ -195,7 +195,7 @@ class ValidationRules {
 /// ```dart
 /// validUrl("Invalid URL")
 /// ```
-(String?,) validUrl([String? message]) => (message,);
+(String?,) validUrl({String? message}) => (message,);
 
 /// Validates date format.
 ///
@@ -203,10 +203,8 @@ class ValidationRules {
 /// ```dart
 /// validDate(DateTimeFormat.DATETIME, "Invalid date")
 /// ```
-(DateTimeFormat, String?) validDate([
-  DateTimeFormat format = DateTimeFormat.DATETIME,
-  String? message,
-]) =>
+(DateTimeFormat, String?) validDate(
+        {DateTimeFormat format = DateTimeFormat.DATETIME, String? message}) =>
     (format, message);
 
 /// Validates that the value exists within the provided list of allowed values.
@@ -218,7 +216,7 @@ class ValidationRules {
 ///
 /// - [values]: A list of allowed values.
 /// - [message]: Optional custom error message to display when validation fails.
-(List<dynamic>, String?) inList(List<dynamic> values, [String? message]) =>
+(List<dynamic>, String?) inList(List<dynamic> values, {String? message}) =>
     (values, message);
 
 /// Validates that the value does **not** exist within the provided list of disallowed values.
@@ -230,7 +228,7 @@ class ValidationRules {
 ///
 /// - [values]: A list of disallowed values.
 /// - [message]: Optional custom error message to display when validation fails.
-(List<dynamic>, String?) notInList(List<dynamic> values, [String? message]) =>
+(List<dynamic>, String?) notInList(List<dynamic> values, {String? message}) =>
     (values, message);
 
 /// Validates a custom regular expression.
@@ -239,7 +237,7 @@ class ValidationRules {
 /// ```dart
 /// regex(r'^\\d{4}\$', "Must be a 4-digit number")
 /// ```
-(String, String?) regex(String pattern, [String? message]) =>
+(String, String?) regex(String pattern, {String? message}) =>
     (pattern, message);
 
 /// Custom validation callback.
@@ -249,7 +247,6 @@ class ValidationRules {
 /// callback((value) => value == "admin", "Only 'admin' is allowed")
 /// ```
 (bool Function(dynamic value), String) callback(
-  bool Function(dynamic value) validate,
-  String message,
-) =>
+        bool Function(dynamic value) validate,
+        {required String message}) =>
     (validate, message);
