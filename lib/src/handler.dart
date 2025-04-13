@@ -48,22 +48,22 @@ class Handler {
 
     Map<String, dynamic>? jsonBody;
 
-    if (jsonReqMethods.contains(method) &&
-        request.headers.contentType?.mimeType == "application/json") {
-      try {
+    try {
+      if (jsonReqMethods.contains(method) &&
+          request.headers.contentType?.mimeType == "application/json") {
         String content = await utf8.decoder.bind(request).join();
         jsonBody = jsonDecode(content);
-      } catch (e) {
-        request.response
-          ..statusCode = HttpStatus.badRequest
-          ..headers.contentType = ContentType.json
-          ..write(_errorResponseData(e.toString()))
-          ..close();
-        return;
+      } else {
+        throw Exception(
+            "Unsupported HTTP method '$method' or missing 'application/json' content type for JSON request.");
       }
-    } else {
-      throw Exception(
-          "Unsupported HTTP method '$method' or missing 'application/json' content type for JSON request.");
+    } catch (e) {
+      request.response
+        ..statusCode = HttpStatus.badRequest
+        ..headers.contentType = ContentType.json
+        ..write(_errorResponseData(e.toString()))
+        ..close();
+      return;
     }
 
     for (MapEntry<String,
