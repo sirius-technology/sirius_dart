@@ -1,6 +1,9 @@
+## 1.0.17
+- Improved support for sending custom headers in HTTP responses via the `Response` class
+- Internal code cleanup for better maintainability and readability
+
 ## 1.0.16
 - Minor bug fixes and stability improvements
-
 
 ## 1.0.15
 - Some bug fixes

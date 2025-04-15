@@ -113,6 +113,17 @@ class Sirius {
     _addRoute(path, PUT, handler, useBefore, useAfter);
   }
 
+  /// Registers a PATCH route.
+  void patch(
+    String path,
+    Future<Response> Function(Request request) handler, {
+    List<Middleware> useBefore = const [],
+    List<Middleware> useAfter = const [],
+  }) {
+    path = _autoAddSlash(path);
+    _addRoute(path, PATCH, handler, useBefore, useAfter);
+  }
+
   /// Registers a DELETE route.
   void delete(
     String path,

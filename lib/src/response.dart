@@ -2,73 +2,95 @@ import 'dart:io';
 
 /// Represents an HTTP response structure used in the Sirius backend framework.
 ///
-/// The `Response` class encapsulates the response data, HTTP status code,
-/// and a flag to indicate if the request should proceed to the next handler.
+/// The `Response` class encapsulates response data, status code, headers,
+/// a signal to continue to the next handler (middleware or controller),
+/// and the ability to pass data between layers.
 ///
-/// ### Example
+/// ### Example: Basic usage
 /// ```dart
-/// final response = Response.send({"message": "Success"}, status: HttpStatus.ok);
-/// return response;
+/// return Response.send({"message": "OK"});
+/// ```
+///
+/// ### Example: Custom status and headers
+/// ```dart
+/// return Response.send(
+///   {"error": "Not Found"},
+///   status: HttpStatus.notFound,
+///   headers: {"X-Custom-Header": "value"},
+/// );
 /// ```
 class Response {
-  /// The actual data to return in the HTTP response.
+  /// The body data of the response (e.g., a message, JSON, etc.)
   dynamic data;
 
-  /// The HTTP status code of the response. Defaults to 200 (OK).
+  /// The HTTP status code to send with the response.
+  /// Defaults to [HttpStatus.ok] (200).
   int statusCode;
 
-  /// A flag that indicates whether the current middleware/controller should pass control to the next.
+  /// HTTP headers to send with the response.
+  /// Defaults to an empty map.
+  Map<String, String> headers = const {};
+
+  /// A flag indicating whether to continue to the next handler.
   ///
-  /// If `isNext` is `true`, it means the middleware should call the next handler in the pipeline.
+  /// If `true`, the request will be forwarded to the next middleware or route handler.
   bool isNext = false;
 
+  /// Optional data to pass from middleware to the next handler or controller.
   dynamic passedData;
 
-  /// Creates a new `Response` object with the given [data] and [statusCode].
+  /// Constructs a `Response` instance.
   ///
-  /// Set [isNext] to true if you want this response to indicate that the next handler should be executed.
+  /// [data] is the response body.
+  /// [statusCode] is the HTTP status (default is 200).
+  /// [headers] are additional response headers.
+  /// [isNext] determines whether to continue the request chain.
+  /// [passedData] allows passing context between layers.
   ///
   /// ### Example
   /// ```dart
-  /// final customResponse = Response({"result": "done"}, HttpStatus.created);
+  /// final response = Response(
+  ///   {"status": "created"},
+  ///   HttpStatus.created,
+  ///   {"X-App-Version": "1.0"},
+  /// );
   /// ```
   Response(
       [this.data,
       this.statusCode = HttpStatus.ok,
+      this.headers = const {},
       this.isNext = false,
       this.passedData]);
 
-  /// Factory method to create a standard response with optional status code.
+  /// Creates a new [Response] with optional [status] and [headers].
   ///
-  /// [data] is the response body, and [status] is the HTTP status code (default is 200 OK).
+  /// This is the most commonly used method to send responses from controllers.
   ///
   /// ### Example
   /// ```dart
-  /// return Response.send({"message": "Data saved successfully"}, status: HttpStatus.ok);
+  /// return Response.send({"message": "Welcome!"});
   /// ```
-  static Response send(dynamic data, {int status = HttpStatus.ok}) {
-    return Response(data, status);
+  static Response send(dynamic data,
+      {int status = HttpStatus.ok, Map<String, String> headers = const {}}) {
+    return Response(data, status, headers);
   }
 
-  /// Returns a [Response] object that signals the framework to continue
-  /// to the next middleware or final handler.
+  /// Creates a `Response` indicating the request should continue to the next handler.
   ///
-  /// This is typically used inside middleware when you want to allow
-  /// the request to proceed without stopping the processing chain.
+  /// Typically used in middleware pipelines where some conditions are checked,
+  /// and you want the request to be passed forward instead of stopped.
   ///
-  /// You can optionally pass data using [passData], which will be accessible
-  /// to subsequent middleware or handlers via the request context.
+  /// You can pass optional [passData] to share data with downstream handlers.
   ///
   /// ### Example
   /// ```dart
-  /// if (!authenticated) {
+  /// if (!userIsAuthenticated) {
   ///   return Response.send({"error": "Unauthorized"}, status: HttpStatus.unauthorized);
   /// }
   ///
-  /// // Continue to the next middleware or handler
-  /// return Response.next(passData: {"userId": 123});
+  /// return Response.next(passData: {"userId": user.id});
   /// ```
   static Response next({dynamic passData}) {
-    return Response(null, HttpStatus.ok, true, passData);
+    return Response(null, HttpStatus.ok, const {}, true, passData);
   }
 }

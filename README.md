@@ -6,7 +6,7 @@ Sirius is a lightweight, expressive, and fast HTTP & WebSocket backend framework
 
 ## 🚀 Features
 
-- Simple and chainable routing (GET, POST, PUT, DELETE)
+- Simple and chainable routing (GET, POST, PUT, PATCH, DELETE)
 - Grouped route management
 - Middleware support (before & after)
 - WebSocket integration
@@ -23,7 +23,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  sirius_backend: ^1.0.0
+  sirius_backend: ^1.0.17
 ```
 
 Then run:

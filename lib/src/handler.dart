@@ -91,9 +91,13 @@ class Handler {
             if (response.isNext == true) {
               continue;
             } else {
+              // setting headers in response
+              response.headers.forEach((key, value) {
+                request.response.headers.set(key, value);
+              });
+
               request.response
                 ..statusCode = response.statusCode
-                ..headers.contentType = ContentType.json
                 ..write(jsonEncode(
                   response.data,
                   // for handling object jsons conversion
