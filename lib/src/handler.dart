@@ -91,12 +91,15 @@ class Handler {
             if (response.isNext == true) {
               continue;
             } else {
-              // setting headers in response
-              if (response.headers != null) {
+              // setting or override headers in response
+              if (response.overrideHeaders != null) {
+                response.overrideHeaders!(request.response.headers);
+              } else {
                 response.headers!.forEach((key, value) {
                   request.response.headers.set(key, value);
                 });
               }
+
               request.response
                 ..statusCode = response.statusCode
                 ..write(jsonEncode(
