@@ -92,10 +92,11 @@ class Handler {
               continue;
             } else {
               // setting headers in response
-              response.headers.forEach((key, value) {
-                request.response.headers.set(key, value);
-              });
-
+              if (response.headers != null) {
+                response.headers!.forEach((key, value) {
+                  request.response.headers.set(key, value);
+                });
+              }
               request.response
                 ..statusCode = response.statusCode
                 ..write(jsonEncode(

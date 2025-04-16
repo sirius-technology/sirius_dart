@@ -29,7 +29,7 @@ class Response {
 
   /// HTTP headers to send with the response.
   /// Defaults to an empty map.
-  Map<String, String> headers = const {};
+  HttpHeaders? headers;
 
   /// A flag indicating whether to continue to the next handler.
   ///
@@ -58,7 +58,7 @@ class Response {
   Response(
       [this.data,
       this.statusCode = HttpStatus.ok,
-      this.headers = const {},
+      this.headers,
       this.isNext = false,
       this.passedData]);
 
@@ -71,7 +71,7 @@ class Response {
   /// return Response.send({"message": "Welcome!"});
   /// ```
   static Response send(dynamic data,
-      {int status = HttpStatus.ok, Map<String, String> headers = const {}}) {
+      {int status = HttpStatus.ok, HttpHeaders? headers}) {
     return Response(data, status, headers);
   }
 
@@ -91,6 +91,6 @@ class Response {
   /// return Response.next(passData: {"userId": user.id});
   /// ```
   static Response next({dynamic passData}) {
-    return Response(null, HttpStatus.ok, const {}, true, passData);
+    return Response(null, HttpStatus.ok, null, true, passData);
   }
 }
