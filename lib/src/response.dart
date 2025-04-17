@@ -2,16 +2,16 @@ import 'dart:io';
 
 /// Represents an HTTP response structure used in the Sirius backend framework.
 ///
-/// The `Response` class encapsulates response data, status code, headers,
-/// a signal to continue to the next handler (middleware or controller),
-/// and the ability to pass data between layers.
+/// This class encapsulates all the necessary details to construct an HTTP response,
+/// including response body, status code, headers, and advanced options like
+/// controlling middleware flow and passing contextual data.
 ///
-/// ### Example: Basic usage
+/// ### Basic Example:
 /// ```dart
 /// return Response.send({"message": "OK"});
 /// ```
 ///
-/// ### Example: Custom status and headers
+/// ### Example with Status and Headers:
 /// ```dart
 /// return Response.send(
 ///   {"error": "Not Found"},
@@ -20,35 +20,45 @@ import 'dart:io';
 /// );
 /// ```
 class Response {
-  /// The body data of the response (e.g., a message, JSON, etc.)
+  /// The response body data. Can be any type (usually a Map or String).
   dynamic data;
 
-  /// The HTTP status code to send with the response.
+  /// The HTTP status code of the response.
   /// Defaults to [HttpStatus.ok] (200).
   int statusCode;
 
-  /// HTTP headers to send with the response.
-  /// Defaults to an empty map.
+  /// Custom headers to include in the HTTP response.
+  ///
+  /// Developers can pass additional metadata such as:
+  /// `"Content-Type": "application/json"`.
   Map<String, dynamic>? headers = {};
+
+  /// A callback to override default headers using [HttpHeaders].
+  ///
+  /// Useful for setting advanced headers (e.g., CORS, cookies, custom control).
+  ///
+  /// ### Example:
+  /// ```dart
+  /// overrideHeaders: (headers) {
+  ///   headers.set('Access-Control-Allow-Origin', '*');
+  /// }
+  /// ```
   void Function(HttpHeaders headers)? overrideHeaders;
 
-  /// A flag indicating whether to continue to the next handler.
+  /// Indicates whether this response should proceed to the next handler or middleware.
   ///
-  /// If `true`, the request will be forwarded to the next middleware or route handler.
+  /// If `true`, the framework continues processing with the next layer.
   bool isNext = false;
 
-  /// Optional data to pass from middleware to the next handler or controller.
+  /// Used to pass data from middleware to downstream handlers or controllers.
+  ///
+  /// Access this via `request.receiveData`.
   dynamic passedData;
 
-  /// Constructs a `Response` instance.
+  /// Constructs a [Response] instance with optional data, status, headers,
+  /// override logic, continuation flag, and passed data.
   ///
-  /// [data] is the response body.
-  /// [statusCode] is the HTTP status (default is 200).
-  /// [headers] are additional response headers.
-  /// [isNext] determines whether to continue the request chain.
-  /// [passedData] allows passing context between layers.
-  ///
-  /// ### Example
+  /// ### Example:
   /// ```dart
   /// final response = Response(
   ///   {"status": "created"},
@@ -56,26 +66,29 @@ class Response {
   ///   {"X-App-Version": "1.0"},
   /// );
   /// ```
-  Response(
-      [this.data,
-      this.statusCode = HttpStatus.ok,
-      this.headers,
-      this.overrideHeaders,
-      this.isNext = false,
-      this.passedData]);
+  Response([
+    this.data,
+    this.statusCode = HttpStatus.ok,
+    this.headers,
+    this.overrideHeaders,
+    this.isNext = false,
+    this.passedData,
+  ]);
 
-  /// Creates a new [Response] with optional [status] and [headers].
+  /// Creates a standard response with optional status code and headers.
   ///
-  /// This is the most commonly used method to send responses from controllers.
+  /// Recommended for most controller responses.
   ///
-  /// ### Example
+  /// ### Example:
   /// ```dart
-  /// return Response.send({"message": "Welcome!"});
+  /// return Response.send({"message": "Data saved"});
   /// ```
-  static Response send(dynamic data,
-      {int status = HttpStatus.ok,
-      Map<String, String>? headers,
-      void Function(HttpHeaders headers)? overrideHeaders}) {
+  static Response send(
+    dynamic data, {
+    int status = HttpStatus.ok,
+    Map<String, String>? headers,
+    void Function(HttpHeaders headers)? overrideHeaders,
+  }) {
     return Response(
       data,
       status,
@@ -84,20 +97,20 @@ class Response {
     );
   }
 
-  /// Creates a `Response` indicating the request should continue to the next handler.
+  /// Signals the framework to continue request handling to the next handler.
   ///
-  /// Typically used in middleware pipelines where some conditions are checked,
-  /// and you want the request to be passed forward instead of stopped.
+  /// Mostly used in middleware chains when a request passes validation or authentication.
   ///
-  /// You can pass optional [passData] to share data with downstream handlers.
+  /// You can optionally pass context using [passData], which can be retrieved
+  /// in the next handler or controller via `request.receiveData`.
   ///
-  /// ### Example
+  /// ### Example:
   /// ```dart
-  /// if (!userIsAuthenticated) {
-  ///   return Response.send({"error": "Unauthorized"}, status: HttpStatus.unauthorized);
+  /// if (isAuthenticated) {
+  ///   return Response.next(passData: {"userId": 123});
   /// }
   ///
-  /// return Response.next(passData: {"userId": user.id});
+  /// return Response.send({"error": "Unauthorized"}, status: HttpStatus.unauthorized);
   /// ```
   static Response next({dynamic passData}) {
     return Response(null, HttpStatus.ok, {}, null, true, passData);

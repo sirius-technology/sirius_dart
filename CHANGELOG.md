@@ -1,3 +1,7 @@
+## 1.0.18
+- ✨ Added support for overriding headers in responses using `overrideHeaders` callback
+- 🧼 Minor internal code cleanup to enhance maintainability
+
 ## 1.0.17
 - Improved support for sending custom headers in HTTP responses via the `Response` class
 - Internal code cleanup for better maintainability and readability

@@ -23,7 +23,7 @@ Add this to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  sirius_backend: ^1.0.17
+  sirius_backend: ^1.0.18
 ```
 
 Then run:
