@@ -85,7 +85,7 @@ class ValidationRules {
   ///
   /// Note: If the list contains objects/maps, use `childMap` within each `ValidationRules`
   /// to define validations for nested fields.
-  List<dynamic>? childList;
+  List<ValidationRules>? childList;
 
   /// Field must match the given regular expression.
   (String, String?)? regex;
