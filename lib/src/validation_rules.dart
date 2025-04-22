@@ -93,6 +93,9 @@ class ValidationRules {
   /// Custom validation using a callback.
   (bool Function(dynamic value), String)? callback;
 
+  /// Marks that the rule applies to each element in a list.
+  ///
+  /// Used internally with [childList] to apply the same rule to each item.
   bool isRuleForEachElement = false;
 
   ValidationRules({
@@ -116,7 +119,29 @@ class ValidationRules {
     this.callback,
   });
 
-  List<ValidationRules> forEach() {
+  /// Helper to apply the rule to each element of a list.
+  ///
+  /// Used when the same rule needs to apply to **every element** inside a list field.
+  /// This is especially useful when validating a list of primitive types like `int`, `String`, etc.
+  ///
+  /// Internally sets the `isRuleForEachElement` flag to true so that the validator
+  /// can apply the same rule to all elements dynamically.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// Map<String, ValidationRules> rules = {
+  ///   "ids": ValidationRules(
+  ///     dataType: dataType(DataTypes.LIST),
+  ///     childList: ValidationRules(
+  ///       required: required(),
+  ///       dataType: dataType(DataTypes.NUMBER),
+  ///     ).forEachElement(), // ✅ Applies the rule to all items in the list
+  ///   ),
+  /// };
+  /// ```
+  ///
+  /// In this example, all items in the `ids` list will be required and must be numbers.
+  List<ValidationRules> forEachElement() {
     isRuleForEachElement = true;
     return [this];
   }

@@ -1,3 +1,10 @@
+## 1.0.20
+- Minor bug fixes
+
+## 1.0.19
+- Validation rules for each elements `ValidationRules().forEachElement()` in list validation
+- Minor bug fixes
+
 ## 1.0.18
 - ✨ Added support for overriding headers in responses using `overrideHeaders` callback
 - 🧼 Minor internal code cleanup to enhance maintainability
