@@ -295,12 +295,8 @@ class Validator {
           for (int i = 0; i < value.length; i++) i.toString(): value[i]
         };
 
-        if (rule.isRuleForEachElement == true) {
-          rule.childList = List.generate(value.length, (i) {
-            return i < rule.childList!.length
-                ? rule.childList!.elementAt(i)
-                : rule.childList!.last;
-          });
+        if (rule.childList!.last.isRuleForEachElement == true) {
+          rule.childList = List.filled(value.length, rule.childList!.last);
         }
 
         Map<String, ValidationRules> listRuleMap = {
