@@ -93,6 +93,8 @@ class ValidationRules {
   /// Custom validation using a callback.
   (bool Function(dynamic value), String)? callback;
 
+  bool isRuleForEachElement = false;
+
   ValidationRules({
     this.required,
     this.nullable = false,
@@ -113,6 +115,11 @@ class ValidationRules {
     this.regex,
     this.callback,
   });
+
+  List<ValidationRules> forEach() {
+    isRuleForEachElement = true;
+    return [this];
+  }
 }
 
 /// Requires the field to be non-null.
