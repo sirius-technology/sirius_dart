@@ -30,6 +30,7 @@ class Sirius {
   final Map<String,
           Map<String, List<Future<Response> Function(Request request)>>>
       _routesMap = {};
+
   final Map<String, void Function(WebSocket socket)> _socketRoutesMap = {};
   final List<Future<Response> Function(Request request)> _beforeMiddlewareList =
       [];
