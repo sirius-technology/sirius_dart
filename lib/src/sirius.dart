@@ -4,6 +4,7 @@ import 'package:sirius_backend/sirius_backend.dart';
 import 'package:sirius_backend/src/constants.dart';
 import 'package:sirius_backend/src/handler.dart';
 import 'package:sirius_backend/src/helpers/logging.dart';
+import 'package:sirius_backend/src/wrapper.dart';
 
 /// Sirius is a lightweight HTTP and WebSocket server framework for Dart.
 ///
@@ -27,9 +28,21 @@ import 'package:sirius_backend/src/helpers/logging.dart';
 /// });
 /// ```
 class Sirius {
-  final Map<String,
-          Map<String, List<Future<Response> Function(Request request)>>>
-      _routesMap = {};
+  final Map<
+      String,
+      Map<
+          String,
+          (
+            List<
+                Future<Response> Function(
+                    Request request, Future<Response> Function() nextHandler)>,
+            List<Future<Response> Function(Request request)>
+          )>> _routesMap = {};
+
+  final List<
+          Future<Response> Function(
+              Request request, Future<Response> Function() nextHandler)>
+      _wrapperList = [];
 
   final Map<String, void Function(WebSocket socket)> _socketRoutesMap = {};
   final List<Future<Response> Function(Request request)> _beforeMiddlewareList =
@@ -54,6 +67,10 @@ class Sirius {
   /// Registers a middleware to run after each request.
   void useAfter(Middleware middleware) {
     _afterMiddlewareList.add(middleware.handle);
+  }
+
+  void wrap(Wrapper wrapper) {
+    _wrapperList.add(wrapper.handle);
   }
 
   /// Groups routes under a common prefix.
@@ -168,11 +185,11 @@ class Sirius {
         throwError("method {$method} and path {$path} is already registered.");
       } else {
         // _routesMap[path]![method] = middlewareHandlerList;
-        _routesMap[method]![path] = middlewareHandlerList;
+        _routesMap[method]![path] = (_wrapperList, middlewareHandlerList);
       }
       return;
     }
-    _routesMap[method] = {path: middlewareHandlerList};
+    _routesMap[method] = {path: (_wrapperList, middlewareHandlerList)};
   }
 
   /// Registers a WebSocket route.
@@ -203,7 +220,7 @@ class Sirius {
     Function(HttpServer server)? callback,
   }) async {
     _handler.registerRoutes(_routesMap, _socketRoutesMap);
-    logMap2(_routesMap);
+    logMap(_routesMap);
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 
     if (callback != null) {

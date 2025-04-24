@@ -6,12 +6,30 @@ import 'request.dart';
 import 'response.dart';
 
 class Handler {
-  final Map<String, Map<String, List<Future<Response> Function(Request r)>>>
-      _mainRoutes = {};
+  final Map<
+      String,
+      Map<
+          String,
+          (
+            List<
+                Future<Response> Function(
+                    Request request, Future<Response> Function() nextHandler)>,
+            List<Future<Response> Function(Request request)>
+          )>> _mainRoutes = {};
+
   final Map<String, void Function(WebSocket socket)> _mainSocketRoutes = {};
 
   void registerRoutes(
-      Map<String, Map<String, List<Future<Response> Function(Request r)>>>
+      Map<
+              String,
+              Map<
+                  String,
+                  (
+                    List<
+                        Future<Response> Function(Request request,
+                            Future<Response> Function() nextHandler)>,
+                    List<Future<Response> Function(Request request)>
+                  )>>
           routesMap,
       Map<String, void Function(WebSocket socket)> socketRoutesMap) {
     _mainRoutes.addAll(routesMap);
@@ -41,18 +59,29 @@ class Handler {
     final String method = request.method;
     Map<String, dynamic>? jsonBody;
     Map<String, String> pathVariables = {};
-    List<Future<Response> Function(Request r)>? middlewareHandlerList;
 
-    middlewareHandlerList = _mainRoutes[method]?[uriPath];
+    if (_mainRoutes[method] == null) {
+      _sendErrorResponse(request, HttpStatus.notFound, "Path not found");
+      return;
+    }
+
+    List<Future<Response> Function(Request request)>? middlewareHandlerList =
+        _mainRoutes[method]![uriPath]?.$2;
+
+    List<
+            Future<Response> Function(
+                Request request, Future<Response> Function() nextHandler)>
+        wrapperList = _mainRoutes[method]![uriPath]?.$1 ?? [];
 
     if (middlewareHandlerList == null) {
       final routeEntries = _mainRoutes[method];
 
       if (routeEntries != null) {
-        for (MapEntry val in routeEntries.entries) {
+        for (var val in routeEntries.entries) {
           Map<String, String>? matches = _matchRoute(val.key, uriPath);
           if (matches != null) {
-            middlewareHandlerList = val.value;
+            wrapperList = val.value.$1;
+            middlewareHandlerList = val.value.$2;
             pathVariables = matches;
             break;
           }
@@ -69,30 +98,53 @@ class Handler {
       jsonBody = await _getJsonBody(request);
     }
 
-    // handling developers functions
+    Request newRequest = Request(request, pathVariables, jsonBody);
+
     try {
-      Request newRequest = Request(request, pathVariables, jsonBody);
+      Response response;
 
-      for (final handler in middlewareHandlerList) {
-        final response = await handler(newRequest);
+      // creating chain for wrapper middleware
+      if (wrapperList.isNotEmpty) {
+        Future<Response> Function() composed = wrapperList.reversed
+            .fold<Future<Response> Function()>(
+                () => _executeHandlerAndMiddleware(
+                    newRequest, middlewareHandlerList!), (next, wrapper) {
+          return () => wrapper(newRequest, next);
+        });
 
-        if (response.passedData != null) {
-          newRequest.passData = response.passedData;
-        }
-
-        if (response.isNext == true) {
-          continue;
-        }
-
-        _sendSuccessResponse(request, response);
-        return;
+        response = await composed();
+      } else {
+        // execute without wrapper middleware (loop middleware and handler will executed)
+        response = await _executeHandlerAndMiddleware(
+            newRequest, middlewareHandlerList);
       }
+
+      _sendSuccessResponse(request, response);
     } catch (e) {
       _sendErrorResponse(request, HttpStatus.internalServerError, e.toString());
     }
     // ---------------------------------
+  }
 
-    _sendErrorResponse(request, HttpStatus.internalServerError,
+  Future<Response> _executeHandlerAndMiddleware(
+      Request request,
+      List<Future<Response> Function(Request request)>
+          middlewareHandlerList) async {
+    for (final handler in middlewareHandlerList) {
+      final response = await handler(request);
+
+      if (response.passedData != null) {
+        request.passData = response.passedData;
+      }
+
+      if (response.isNext == true) {
+        continue;
+      }
+
+      return response;
+    }
+
+    throw Exception(
         "No response sent by handler. not getting response in handler");
   }
 

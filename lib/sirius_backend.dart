@@ -12,3 +12,7 @@ export 'src/validator.dart';
 export 'src/validation_rules.dart';
 
 // TODO: Export any libraries intended for clients of this package.
+
+// apply middleware in only selected methods
+// need to add middleware in web sokets also
+// need to add wrapper middleware

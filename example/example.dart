@@ -1,21 +1,13 @@
 import 'package:sirius_backend/sirius_backend.dart';
+import 'package:sirius_backend/src/wrapper.dart';
 
 void main() {
   Sirius sirius = Sirius();
 
-  // sirius.useBefore(Logger());
+  sirius.wrap(Wrapper1());
 
   sirius.post("test", (Request request) async {
     return Response.send(request.jsonBody);
-  });
-
-  sirius.group("api", (r) {
-    r.post("test", (Request request) async {
-      return Response.send(request.jsonBody);
-    });
-    r.put("test/:name/get", (Request request) async {
-      return Response.send(request.allPathVariables);
-    });
   });
 
   sirius.start(
@@ -29,10 +21,17 @@ void main() {
   });
 }
 
-class Logger extends Middleware {
+class Wrapper1 extends Wrapper {
   @override
-  Future<Response> handle(Request request) async {
-    print(request.method);
-    return Response.next();
+  Future<Response> handle(
+      Request request, Future<Response> Function() nextHandler) async {
+    print("Wrapper 1 Start");
+    return Response.send("fff");
+
+    Response res = await nextHandler();
+
+    print("Wrapper 1 End");
+
+    return res;
   }
 }
