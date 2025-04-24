@@ -32,112 +32,88 @@ class Handler {
       // calling websocket functions
       _mainSocketRoutes[request.uri.path]!(socket);
     }).catchError((e) {
-      request.response
-        ..statusCode = HttpStatus.internalServerError
-        ..headers.contentType = ContentType.json
-        ..write(_errorResponseData(e.toString()))
-        ..close();
+      _sendErrorResponse(request, HttpStatus.internalServerError, e.toString());
     });
   }
 
   Future<void> _handleHttpRequest(HttpRequest request) async {
     final String uriPath = request.uri.path;
     final String method = request.method;
-
-    final List<String> jsonReqMethods = [POST, PUT, DELETE];
-
     Map<String, dynamic>? jsonBody;
+    List<Future<Response> Function(Request r)>? middlewareHandlerList;
 
-    try {
-      if (request.headers.contentType?.mimeType == "application/json") {
-        if (jsonReqMethods.contains(method)) {
-          String content = await utf8.decoder.bind(request).join();
-          jsonBody = jsonDecode(content);
-        } else {
-          throw Exception(
-              "Unsupported HTTP method '$method' or missing 'application/json' content type for JSON request.");
-        }
-      }
-    } catch (e) {
-      request.response
-        ..statusCode = HttpStatus.badRequest
-        ..headers.contentType = ContentType.json
-        ..write(_errorResponseData(e.toString()))
-        ..close();
+    middlewareHandlerList = _mainRoutes[method]?[uriPath];
+
+    if (middlewareHandlerList == null) {
+      _sendErrorResponse(request, HttpStatus.notFound, "Path not found");
       return;
     }
 
-    for (MapEntry<String,
-            Map<String, List<Future<Response> Function(Request r)>>> val
-        in _mainRoutes.entries) {
-      final String routePath = val.key;
-      final List<Future<Response> Function(Request r)>? middelwareHandlerList =
-          val.value[method];
+    if ([POST, PUT, DELETE].contains(method)) {
+      jsonBody = await _getJsonBody(request);
+    }
 
-      final Map<String, String>? match = _matchRoute(routePath, uriPath);
+    // handling developers functions
+    try {
+      Request newRequest = Request(request, {}, jsonBody);
 
-      if (match != null && middelwareHandlerList != null) {
-        try {
-          Request newRequest = Request(request, match, jsonBody);
+      for (final handler in middlewareHandlerList) {
+        final response = await handler(newRequest);
 
-          for (Future<Response> Function(Request r) value
-              in middelwareHandlerList) {
-            Response response = await value(newRequest);
-
-            if (response.passedData != null) {
-              newRequest.passData = response.passedData;
-            }
-
-            if (response.isNext == true) {
-              continue;
-            } else {
-              // setting or override headers in response
-              if (response.overrideHeaders != null) {
-                response.overrideHeaders!(request.response.headers);
-              } else {
-                response.headers!.forEach((key, value) {
-                  request.response.headers.set(key, value);
-                });
-              }
-
-              request.response
-                ..statusCode = response.statusCode
-                ..write(jsonEncode(
-                  response.data,
-                  // for handling object jsons conversion
-                  toEncodable: (nonEncodable) {
-                    if (nonEncodable is DateTime) {
-                      return nonEncodable.toIso8601String();
-                    }
-                    return nonEncodable.toString();
-                  },
-                ))
-                ..close();
-              break;
-            }
-          }
-          return;
-        } catch (e) {
-          request.response
-            ..statusCode = HttpStatus.internalServerError
-            ..headers.contentType = ContentType.json
-            ..write(_errorResponseData(e.toString()))
-            ..close();
-          return;
+        if (response.passedData != null) {
+          newRequest.passData = response.passedData;
         }
+
+        if (response.isNext == true) {
+          continue;
+        }
+
+        _sendSuccessResponse(request, response);
+        return;
       }
+    } catch (e) {
+      _sendErrorResponse(request, HttpStatus.internalServerError, e.toString());
+    }
+    // ---------------------------------
+
+    _sendErrorResponse(request, HttpStatus.internalServerError,
+        "No response sent by handler. not getting response in handler");
+  }
+
+  void _sendSuccessResponse(HttpRequest request, Response response) {
+    if (response.overrideHeaders != null) {
+      response.overrideHeaders!(request.response.headers);
+    } else {
+      response.headers?.forEach((key, value) {
+        request.response.headers.set(key, value);
+      });
     }
 
     request.response
-      ..statusCode = HttpStatus.notFound
-      ..headers.contentType = ContentType.json
-      ..write(_errorResponseData("Page not found"))
+      ..statusCode = response.statusCode
+      ..write(jsonEncode(
+        response.data,
+        toEncodable: (nonEncodable) => nonEncodable is DateTime
+            ? nonEncodable.toIso8601String()
+            : nonEncodable.toString(),
+      ))
       ..close();
-    return;
   }
 
-  String _errorResponseData(String msg) {
-    return jsonEncode({"status": false, "message": msg});
+  void _sendErrorResponse(HttpRequest request, int code, String message) {
+    request.response
+      ..statusCode = code
+      ..headers.contentType = ContentType.json
+      ..write(jsonEncode({"status": false, "message": message}))
+      ..close();
+  }
+
+  Future<Map<String, dynamic>?> _getJsonBody(HttpRequest request) async {
+    if (request.headers.contentType?.mimeType == "application/json") {
+      final content = await utf8.decoder.bind(request).join();
+      return jsonDecode(content);
+    }
+    return null;
   }
 
   Map<String, String>? _matchRoute(String route, String uri) {

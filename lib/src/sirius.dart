@@ -73,11 +73,17 @@ class Sirius {
 
     callback(siriusGroup);
 
-    siriusGroup._routesMap.forEach((key, value) {
-      _routesMap["$prefix$key"] = value;
+    siriusGroup._routesMap.forEach((method, pathMap) {
+      for (final entry in pathMap.entries) {
+        final fullPath = "$prefix${entry.key}";
+
+        _routesMap.putIfAbsent(method, () => {});
+        _routesMap[method]![fullPath] = entry.value;
+      }
     });
-    siriusGroup._socketRoutesMap.forEach((key, value) {
-      _socketRoutesMap["$prefix$key"] = value;
+
+    siriusGroup._socketRoutesMap.forEach((path, function) {
+      _socketRoutesMap["$prefix$path"] = function;
     });
   }
 
@@ -157,15 +163,16 @@ class Sirius {
       ..._afterMiddlewareList,
     ];
 
-    if (_routesMap.containsKey(path)) {
-      if (_routesMap[path]!.containsKey(method)) {
-        throwError("path {$path} and method {$method} is already registered.");
+    if (_routesMap.containsKey(method)) {
+      if (_routesMap[path]!.containsKey(path)) {
+        throwError("method {$method} and path {$path} is already registered.");
       } else {
-        _routesMap[path]![method] = middlewareHandlerList;
+        // _routesMap[path]![method] = middlewareHandlerList;
+        _routesMap[method]![path] = middlewareHandlerList;
       }
       return;
     }
-    _routesMap[path] = {method: middlewareHandlerList};
+    _routesMap[method] = {path: middlewareHandlerList};
   }
 
   /// Registers a WebSocket route.
@@ -196,6 +203,7 @@ class Sirius {
     Function(HttpServer server)? callback,
   }) async {
     _handler.registerRoutes(_routesMap, _socketRoutesMap);
+
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 
     if (callback != null) {
