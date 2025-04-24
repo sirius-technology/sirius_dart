@@ -1,11 +1,9 @@
-import 'dart:developer';
-
 import 'package:sirius_backend/sirius_backend.dart';
 
 void main() {
   Sirius sirius = Sirius();
 
-  sirius.useBefore(Logger());
+  // sirius.useBefore(Logger());
 
   sirius.post("test", (Request request) async {
     return Response.send(request.jsonBody);
@@ -15,8 +13,8 @@ void main() {
     r.post("test", (Request request) async {
       return Response.send(request.jsonBody);
     });
-    r.put("test", (Request request) async {
-      return Response.next();
+    r.put("test/:name/get", (Request request) async {
+      return Response.send(request.allPathVariables);
     });
   });
 

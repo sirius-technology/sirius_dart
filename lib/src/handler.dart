@@ -40,13 +40,29 @@ class Handler {
     final String uriPath = request.uri.path;
     final String method = request.method;
     Map<String, dynamic>? jsonBody;
+    Map<String, String> pathVariables = {};
     List<Future<Response> Function(Request r)>? middlewareHandlerList;
 
     middlewareHandlerList = _mainRoutes[method]?[uriPath];
 
     if (middlewareHandlerList == null) {
-      _sendErrorResponse(request, HttpStatus.notFound, "Path not found");
-      return;
+      final routeEntries = _mainRoutes[method];
+
+      if (routeEntries != null) {
+        for (MapEntry val in routeEntries.entries) {
+          Map<String, String>? matches = _matchRoute(val.key, uriPath);
+          if (matches != null) {
+            middlewareHandlerList = val.value;
+            pathVariables = matches;
+            break;
+          }
+        }
+      }
+
+      if (middlewareHandlerList == null) {
+        _sendErrorResponse(request, HttpStatus.notFound, "Path not found");
+        return;
+      }
     }
 
     if ([POST, PUT, DELETE].contains(method)) {
@@ -55,7 +71,7 @@ class Handler {
 
     // handling developers functions
     try {
-      Request newRequest = Request(request, {}, jsonBody);
+      Request newRequest = Request(request, pathVariables, jsonBody);
 
       for (final handler in middlewareHandlerList) {
         final response = await handler(newRequest);

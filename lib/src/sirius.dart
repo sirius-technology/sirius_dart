@@ -203,7 +203,7 @@ class Sirius {
     Function(HttpServer server)? callback,
   }) async {
     _handler.registerRoutes(_routesMap, _socketRoutesMap);
-
+    logMap2(_routesMap);
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 
     if (callback != null) {
