@@ -29,17 +29,30 @@ void logMap(Map<String, dynamic> map) {
 }
 
 void logMap2(
-    Map<String, Map<String, List<Future<Response> Function(Request request)>>>
+    Map<
+            String,
+            Map<
+                String,
+                (
+                  List<
+                      Future<Response> Function(Request request,
+                          Future<Response> Function() nextHandler)>,
+                  List<Future<Response> Function(Request request)>
+                )>>
         routes) {
-  final converted = routes.map((key, value) {
+  final converted = routes.map((path, methodsMap) {
     return MapEntry(
-      key,
-      value.map((method, handlers) {
+      path,
+      methodsMap.map((method, handlerTuple) {
+        final wrapperList = handlerTuple.$1.map((f) => f.toString()).toList();
+        final handlerList = handlerTuple.$2.map((f) => f.toString()).toList();
+
         return MapEntry(
           method,
-          handlers
-              .map((handler) => handler.toString())
-              .toList(), // Convert function to string
+          {
+            "wrappers": wrapperList,
+            "handlers": handlerList,
+          },
         );
       }),
     );

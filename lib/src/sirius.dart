@@ -6,25 +6,25 @@ import 'package:sirius_backend/src/handler.dart';
 import 'package:sirius_backend/src/helpers/logging.dart';
 import 'package:sirius_backend/src/wrapper.dart';
 
-/// Sirius is a lightweight HTTP and WebSocket server framework for Dart.
+/// Sirius is a lightweight and extensible HTTP and WebSocket server framework for Dart.
 ///
-/// It provides easy-to-use routing, middleware support, and WebSocket handling.
+/// It supports middleware, route grouping, and request-response management.
+/// Built to resemble modern web frameworks like Express.js, it is simple yet powerful.
 ///
-/// ### Basic Example:
-///
+/// ### Example: Basic HTTP server
 /// ```dart
-/// final Sirius sirius = Sirius();
+/// final sirius = Sirius();
 ///
 /// sirius.get('/hello', (req) async => Response.send('Hello World'));
 ///
 /// await sirius.start(port: 3000);
 /// ```
 ///
-/// ### Grouped Routes:
+/// ### Example: Grouped routes
 /// ```dart
 /// sirius.group('/api', (group) {
-///   group.get('/users', userController.getUsersHandler);
-///   group.post('/users', userController.createUserHandler);
+///   group.get('/users', userController.getAll);
+///   group.post('/users', userController.create);
 /// });
 /// ```
 class Sirius {
@@ -59,25 +59,47 @@ class Sirius {
     return "/$path";
   }
 
-  /// Registers a middleware to run before each request.
+  /// Registers a global middleware that runs before every route handler.
+  ///
+  /// This is useful for authentication, request logging, etc.
+  ///
+  /// ```dart
+  /// sirius.useBefore(LoggerMiddleware());
+  /// ```
   void useBefore(Middleware middleware) {
     _beforeMiddlewareList.add(middleware.handle);
   }
 
-  /// Registers a middleware to run after each request.
+  /// Registers a global middleware that runs after every route handler.
+  ///
+  /// This can be useful for logging responses, cleanup, etc.
+  ///
+  /// ```dart
+  /// sirius.useAfter(ResponseLogger());
+  /// ```
   void useAfter(Middleware middleware) {
     _afterMiddlewareList.add(middleware.handle);
   }
 
+  /// Registers a global wrapper middleware that wraps the entire handler chain.
+  ///
+  /// Wrappers act like interceptors and are ideal for timing, monitoring, etc.
+  ///
+  /// ```dart
+  /// sirius.wrap(TimerWrapper());
+  /// ```
   void wrap(Wrapper wrapper) {
     _wrapperList.add(wrapper.handle);
   }
 
-  /// Groups routes under a common prefix.
+  /// Groups multiple routes under a common prefix.
+  ///
+  /// Useful for organizing APIs like `/api/v1`, `/admin`, etc.
   ///
   /// ```dart
-  /// sirius.group('/api', (group) {
-  ///   group.get('/users', userController.getUsersHandler);
+  /// sirius.group('/api', (api) {
+  ///   api.get('/users', userController.getUserHandler);
+  ///   api.post('/users', userController.createUserHandler);
   /// });
   /// ```
   void group(String prefix, void Function(Sirius sirius) callback) {
@@ -91,9 +113,10 @@ class Sirius {
     callback(siriusGroup);
 
     siriusGroup._routesMap.forEach((method, pathMap) {
+      siriusGroup._wrapperList.addAll(_wrapperList);
+
       for (final entry in pathMap.entries) {
         final fullPath = "$prefix${entry.key}";
-
         _routesMap.putIfAbsent(method, () => {});
         _routesMap[method]![fullPath] = entry.value;
       }
@@ -105,14 +128,21 @@ class Sirius {
   }
 
   /// Registers a GET route.
+  ///
+  /// You can also pass route-specific middleware and wrapper.
+  ///
+  /// ```dart
+  /// sirius.get('/users', handler, useBefore: [CheckAuth()]);
+  /// ```
   void get(
     String path,
     Future<Response> Function(Request request) handler, {
     List<Middleware> useBefore = const [],
     List<Middleware> useAfter = const [],
+    List<Wrapper> wrap = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, GET, handler, useBefore, useAfter);
+    _addRoute(path, GET, handler, useBefore, useAfter, wrap);
   }
 
   /// Registers a POST route.
@@ -121,9 +151,10 @@ class Sirius {
     Future<Response> Function(Request request) handler, {
     List<Middleware> useBefore = const [],
     List<Middleware> useAfter = const [],
+    List<Wrapper> wrap = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, POST, handler, useBefore, useAfter);
+    _addRoute(path, POST, handler, useBefore, useAfter, wrap);
   }
 
   /// Registers a PUT route.
@@ -132,9 +163,10 @@ class Sirius {
     Future<Response> Function(Request request) handler, {
     List<Middleware> useBefore = const [],
     List<Middleware> useAfter = const [],
+    List<Wrapper> wrap = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, PUT, handler, useBefore, useAfter);
+    _addRoute(path, PUT, handler, useBefore, useAfter, wrap);
   }
 
   /// Registers a PATCH route.
@@ -143,9 +175,10 @@ class Sirius {
     Future<Response> Function(Request request) handler, {
     List<Middleware> useBefore = const [],
     List<Middleware> useAfter = const [],
+    List<Wrapper> wrap = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, PATCH, handler, useBefore, useAfter);
+    _addRoute(path, PATCH, handler, useBefore, useAfter, wrap);
   }
 
   /// Registers a DELETE route.
@@ -154,9 +187,10 @@ class Sirius {
     Future<Response> Function(Request request) handler, {
     List<Middleware> useBefore = const [],
     List<Middleware> useAfter = const [],
+    List<Wrapper> wrap = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, DELETE, handler, useBefore, useAfter);
+    _addRoute(path, DELETE, handler, useBefore, useAfter, wrap);
   }
 
   void _addRoute(
@@ -165,6 +199,7 @@ class Sirius {
     Future<Response> Function(Request request) handler,
     List<Middleware> beforeMiddlewares,
     List<Middleware> afterMiddlewares,
+    List<Wrapper> wrappers,
   ) {
     List<Future<Response> Function(Request request)> beforeRouteMiddlewareList =
         beforeMiddlewares.map((mw) => mw.handle).toList();
@@ -180,23 +215,31 @@ class Sirius {
       ..._afterMiddlewareList,
     ];
 
+    List<
+            Future<Response> Function(
+                Request request, Future<Response> Function() nextHandler)>
+        wrapperList = [..._wrapperList, ...wrappers.map((wr) => wr.handle)];
+
     if (_routesMap.containsKey(method)) {
       if (_routesMap[path]!.containsKey(path)) {
         throwError("method {$method} and path {$path} is already registered.");
       } else {
         // _routesMap[path]![method] = middlewareHandlerList;
-        _routesMap[method]![path] = (_wrapperList, middlewareHandlerList);
+        _routesMap[method]![path] = (wrapperList, middlewareHandlerList);
       }
       return;
     }
-    _routesMap[method] = {path: (_wrapperList, middlewareHandlerList)};
+    _routesMap[method] = {path: (wrapperList, middlewareHandlerList)};
   }
 
   /// Registers a WebSocket route.
   ///
+  /// Example:
   /// ```dart
   /// sirius.webSocket('/chat', (socket) {
-  ///   socket.listen((message) => socket.add('Echo: \$message'));
+  ///   socket.listen((data) {
+  ///     socket.add("Echo: $data");
+  ///   });
   /// });
   /// ```
   void webSocket(String path, void Function(WebSocket socket) handler) {
@@ -209,18 +252,21 @@ class Sirius {
     }
   }
 
-  /// Starts the server on the given [port].
+  /// Starts the HTTP server on the specified port.
+  ///
+  /// Default port is `3333`. You can also provide a callback to run after startup.
   ///
   /// ```dart
-  /// int port = 3000;
-  /// await sirius.start(port: port); // default port is 3333
+  /// await sirius.start(port: 8080, callback: (server) {
+  ///   print('Server running at ${server.address.address}:${server.port}');
+  /// });
   /// ```
   Future<void> start({
     int port = 3333,
     Function(HttpServer server)? callback,
   }) async {
     _handler.registerRoutes(_routesMap, _socketRoutesMap);
-    logMap(_routesMap);
+    logMap2(_routesMap);
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 
     if (callback != null) {
@@ -232,7 +278,9 @@ class Sirius {
     }
   }
 
-  /// Closes the HTTP server gracefully.
+  /// Closes the server gracefully.
+  ///
+  /// Use `force: true` to immediately terminate all connections.
   Future<void> close({bool force = false}) async {
     if (_server != null) {
       await _server!.close(force: force);

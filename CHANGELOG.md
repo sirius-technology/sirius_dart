@@ -1,3 +1,15 @@
+## 2.0.0
+### 🚀 Major Release – Sirius Framework 2.0
+
+> This version introduces powerful middleware architecture changes and improved flexibility, with some **breaking changes**.
+
+### ✨ Features & Enhancements
+
+- 🔄 **Introduced wrapper middleware support**  
+  Wrappers allow chaining logic (e.g. logging, timing, authentication) _around_ the entire request lifecycle using:
+  ```dart
+  sirius.wrap(LoggerWrapper());
+
 ## 1.0.20
 - Minor bug fixes
 

@@ -1,37 +1,78 @@
-import 'package:sirius_backend/sirius_backend.dart';
-import 'package:sirius_backend/src/wrapper.dart';
+// import 'package:sirius_backend/sirius_backend.dart';
 
-void main() {
-  Sirius sirius = Sirius();
+// void main() {
+//   Sirius sirius = Sirius();
 
-  sirius.wrap(Wrapper1());
+//   // sirius.useBefore(Middleware1());
+//   // sirius.wrap(Wrapper1());
+//   // sirius.wrap(Wrapper2());
 
-  sirius.post("test", (Request request) async {
-    return Response.send(request.jsonBody);
-  });
+//   sirius.get("user", handler1);
 
-  sirius.start(
-    callback: (server) {
-      print("server is running");
-    },
-  );
+//   sirius.group("api", (route) {
+//     route.get("driver", handler2);
+//   });
 
-  fileWatcher("example/example.dart", callback: () {
-    sirius.close();
-  });
-}
+//   ///
+//   ///
+//   ///
+//   ///
+//   ///
+//   ///
+//   ///
+//   ///
+//   sirius.start(
+//     callback: (server) {
+//       print("server is running");
+//     },
+//   );
 
-class Wrapper1 extends Wrapper {
-  @override
-  Future<Response> handle(
-      Request request, Future<Response> Function() nextHandler) async {
-    print("Wrapper 1 Start");
-    return Response.send("fff");
+//   fileWatcher("example/example.dart", callback: () {
+//     sirius.close();
+//   });
+// }
 
-    Response res = await nextHandler();
+// // /// wrapper
+// // class Wrapper1 extends Wrapper {
+// //   @override
+// //   Future<Response> handle(
+// //       Request request, Future<Response> Function() nextHandler) async {
+// //     print("Wrapper 1 Start");
+// //     Response res = await nextHandler();
+// //     print("Wrapper 1 End");
+// //     return res;
+// //   }
+// // }
 
-    print("Wrapper 1 End");
+// // class Wrapper2 extends Wrapper {
+// //   @override
+// //   Future<Response> handle(
+// //       Request request, Future<Response> Function() nextHandler) async {
+// //     print("Wrapper 2 Start");
+// //     Response res = await nextHandler();
+// //     print("Wrapper 2 End");
+// //     return res;
+// //   }
+// // }
 
-    return res;
-  }
-}
+// // /// Middleware
+// // class Middleware1 extends Middleware {
+// //   @override
+// //   Future<Response> handle(Request request) async {
+// //     print("middleware 1");
+
+// //     return Response.next();
+// //   }
+// // }
+
+// /// handlers
+
+// Future<Response> handler1(Request request) async {
+//   print("handler 1");
+//   return Response.send("handler 1");
+// }
+
+// Future<Response> handler2(Request request) async {
+//   print("handler 2");
+//   return Response.send("handler 2");
+// }

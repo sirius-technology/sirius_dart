@@ -1,29 +1,27 @@
 # Sirius ⚡ — A Lightweight Dart Backend Framework
 
-Sirius is a lightweight, expressive, and fast HTTP & WebSocket backend framework built entirely with Dart. Designed for simplicity, performance, and developer productivity, it provides powerful routing, middleware, and request validation features for building modern backend APIs.
+Sirius is a lightweight, expressive, and fast HTTP & WebSocket backend framework built entirely with Dart.  
+It features powerful routing, composable middleware, validation, and wrapper lifecycle hooks
 
 ---
 
 ## 🚀 Features
 
-- Simple and chainable routing (GET, POST, PUT, PATCH, DELETE)
-- Grouped route management
-- Middleware support (before & after)
-- WebSocket integration
-- Powerful and extensible request validation
-- Nested object and list validation support
-- Easy-to-use request & response handling
-- Built with `dart:io` for performance
+- ⚡ Simple, expressive routing (GET, POST, PUT, PATCH, DELETE)
+- 🔁 Middleware support (before & after)
+- 🧱 Wrapper middleware `.wrap()` for lifecycle-level logic (timing, logging, etc.)
+- 🔀 Grouped routes
+- 🔐 Validation with nested objects and list support
+- 🌐 WebSocket routing support
+- 💡 `dart:io` based performance
 
 ---
 
 ## 📦 Installation
 
-Add this to your `pubspec.yaml`:
-
 ```yaml
 dependencies:
-  sirius_backend: ^1.0.20
+  sirius_backend: ^2.0.0
 ```
 
 Then run:
@@ -55,23 +53,23 @@ void main() async {
 ## 🌐 Routing
 
 ```dart
-sirius.get('/users', getUsersHandler);
-sirius.post('/users', createUserHandler);
-sirius.put('/users/:id', updateUserHandler);
-sirius.delete('/users/:id', deleteUserHandler);
+sirius.get('/users', userController.getUsersHandler);
+sirius.post('/users', userController.createUserHandler);
+sirius.put('/users/:id', userController.updateUserHandler);
+sirius.delete('/users/:id', userController.deleteUserHandler);
 ```
 
 ### Grouped Routes
 
 ```dart
-sirius.group('/api', (group) {
-  group.get('/status', (req) async => Response.send({'ok': true}));
+sirius.group('/api', (router) {
+  router.get('/status', (req) async => Response.send({'ok': true}));
 });
 ```
 
 ---
 
-## 🔐 Middleware
+## 🧩 Middleware
 
 ### Global Middleware
 
@@ -83,13 +81,13 @@ sirius.useAfter(LoggerMiddleware());
 ### Route Middleware
 
 ```dart
-sirius.get('/secure',
-  (req) async => Response.send('Authorized'),
-  useBefore: [AuthMiddleware()]
+sirius.get('/profile', (req) async => Response.send('Profile'),
+  useBefore: [AuthMiddleware()],
+  useAfter: [LoggerMiddleware()],
 );
 ```
 
-### Middleware Example
+### Example Middleware
 
 ```dart
 class AuthMiddleware extends Middleware {
@@ -107,21 +105,52 @@ class AuthMiddleware extends Middleware {
 
 ---
 
-## 📦 Request Object
+## 🌀 Wrapper Middleware (NEW in 2.0)
+
+Wrappers allow full control around the lifecycle of a route.
+
+```dart
+class TimerWrapper extends Wrapper {
+  @override
+  Future<Response> handle(Request request, Future<Response> Function() nextHandler) async {
+    final start = DateTime.now();
+    final response = await nextHandler();
+    final end = DateTime.now();
+    print("Duration: ${end.difference(start)}");
+    return response;
+  }
+}
+```
+
+Register wrapper globally:
+
+```dart
+sirius.wrap(TimerWrapper());
+```
+
+Or for a single route:
+
+```dart
+sirius.get('/dashboard', controller.dashboardHandler, wrap: [TimerWrapper()]);
+```
+
+---
+
+## 🧾 Request Object
 
 ```dart
 final id = request.pathVariable('id');
 final name = request.jsonValue('name');
 final headers = request.headers;
 final method = request.method;
-final userData = request.receiveData; // from middleware
+final userData = request.receiveData; // Passed via middleware
 ```
 
 ---
 
 ## ✅ Validation
 
-### Basic Usage
+### Basic Validation
 
 ```dart
 final validator = Validator(request.getAllFields(), {
@@ -134,7 +163,7 @@ if (!validator.validate()) {
 }
 ```
 
-### Nested Map Validation
+### Nested Object Validation
 
 ```dart
 'address': ValidationRules(
@@ -146,15 +175,45 @@ if (!validator.validate()) {
 )
 ```
 
-### Nested List Validation
+### List Validation
 
 ```dart
 'items': ValidationRules(
   dataType: dataType(DataTypes.LIST),
   childList: [
-    ValidationRules(required: required(message: "Item name is required")),
+    ValidationRules(required: required(message: "Item is required")),
   ],
 )
+```
+
+### Validate Every List Element with Same Rules
+
+```dart
+'ids': ValidationRules(
+  dataType: dataType(DataTypes.LIST),
+  childList: ValidationRules(
+    required: required(),
+    dataType: dataType(DataTypes.NUMBER),
+  ).forEachElement(),
+)
+```
+
+---
+
+## 📤 Response API
+
+```dart
+return Response.send({"message": "Success"});
+return Response.send({"error": "Unauthorized"}, status: 401);
+return Response.next(); // To continue in middleware/chain
+```
+
+You can also override headers:
+
+```dart
+return Response.send({'ok': true}, overrideHeaders: (headers) {
+  headers.set('x-powered-by', 'Sirius');
+});
 ```
 
 ---
@@ -162,7 +221,7 @@ if (!validator.validate()) {
 ## 🔄 WebSocket Support
 
 ```dart
-sirius.webSocket('/chat', (socket) {
+sirius.webSocket('/echo', (socket) {
   socket.listen((msg) {
     socket.add('Echo: $msg');
   });
@@ -171,42 +230,25 @@ sirius.webSocket('/chat', (socket) {
 
 ---
 
-## 📤 Response
+## 🧱 Advanced Usage: Route Composition
 
 ```dart
-return Response.send({"message": "Success"});
-return Response.send({"error": "Unauthorized"}, status: 401);
-return Response.next(); // used inside middleware
+sirius.get('/secure-data',
+  secureDataHandler,
+  useBefore: [AuthMiddleware()],
+  useAfter: [LoggerMiddleware()],
+  wrap: [TimerWrapper()],
+);
 ```
-
----
-
-## 📄 Request Validation Utilities
-
-You can define reusable validation rules like:
-
-```dart
-ValidationRules(
-  required: required(),
-  dataType: dataType(DataTypes.STRING),
-  minLength: minLength(3),
-  maxLength: maxLength(50),
-  inList: inList(["admin", "user"]),
-)
-```
-
----
-
-## 📌 Development Notes
-
-- Sirius is built using Dart's native `dart:io` server.
-- Intended for REST APIs, internal tools, and WebSocket-based microservices.
-- Fully typed, with customizable validation and extensible middleware patterns.
 
 ---
 
 ## 📃 License
 
-MIT License. Feel free to use and modify.
+MIT License — free for commercial and personal use.
 
 ---
+
+## 🤝 Contributing
+
+Pull requests, issues, and feature suggestions are welcome. Let's make backend dev in Dart delightful!
