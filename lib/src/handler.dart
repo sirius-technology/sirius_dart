@@ -152,7 +152,7 @@ class Handler {
     if (response.overrideHeaders != null) {
       response.overrideHeaders!(request.response.headers);
     } else {
-      response.headers?.forEach((key, value) {
+      response.headers.forEach((key, value) {
         request.response.headers.set(key, value);
       });
     }

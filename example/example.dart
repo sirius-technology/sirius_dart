@@ -1,78 +1,113 @@
-// import 'package:sirius_backend/sirius_backend.dart';
+import 'package:sirius_backend/sirius_backend.dart';
 
-// void main() {
-//   Sirius sirius = Sirius();
+void main() async {
+  final sirius = Sirius();
 
-//   // sirius.useBefore(Middleware1());
-//   // sirius.wrap(Wrapper1());
-//   // sirius.wrap(Wrapper2());
+  // Global Middleware
+  sirius.useBefore(LoggerMiddleware());
 
-//   sirius.get("user", handler1);
+  // Global Wrapper-Middleware
+  sirius.wrap(TimerWrapper());
 
-//   sirius.group("api", (route) {
-//     route.get("driver", handler2);
-//   });
+  // Simple Route
+  sirius.get('/hello', (req) async {
+    return Response.send({"message": "Hello from Sirius!"});
+  });
 
-//   ///
-//   ///
-//   ///
-//   ///
-//   ///
-//   ///
-//   ///
-//   ///
-//   sirius.start(
-//     callback: (server) {
-//       print("server is running");
-//     },
-//   );
+  // User Routes
+  sirius.group('/user', (group) {
+    group.post('/create', userController.createUser);
+    group.get('/info', userController.getInfo,
+        useAfter: [ResponseTimeMiddleware()]);
+  });
 
-//   fileWatcher("example/example.dart", callback: () {
-//     sirius.close();
-//   });
-// }
+  // WebSocket route
+  sirius.webSocket('/chat', (socket) {
+    socket.listen((message) {
+      socket.add("Echo: $message");
+    });
+  });
 
-// // /// wrapper
-// // class Wrapper1 extends Wrapper {
-// //   @override
-// //   Future<Response> handle(
-// //       Request request, Future<Response> Function() nextHandler) async {
-// //     print("Wrapper 1 Start");
-// //     Response res = await nextHandler();
-// //     print("Wrapper 1 End");
-// //     return res;
-// //   }
-// // }
+  sirius.start(
+      port: 3333,
+      callback: (server) {
+        print("Server is running");
+      });
 
-// // class Wrapper2 extends Wrapper {
-// //   @override
-// //   Future<Response> handle(
-// //       Request request, Future<Response> Function() nextHandler) async {
-// //     print("Wrapper 2 Start");
-// //     Response res = await nextHandler();
-// //     print("Wrapper 2 End");
-// //     return res;
-// //   }
-// // }
+  // Server will restart on save
+  fileWatcher("example/example.dart", callback: () async {
+    await sirius.close();
+  });
+}
 
-// // /// Middleware
-// // class Middleware1 extends Middleware {
-// //   @override
-// //   Future<Response> handle(Request request) async {
-// //     print("middleware 1");
+// Controller Class
+UserController userController = UserController();
 
-// //     return Response.next();
-// //   }
-// // }
+class UserController {
+  Future<Response> createUser(Request request) async {
+    final validator = Validator(request.getAllFields(), {
+      'name': ValidationRules(
+        required: required(message: "Name is required"),
+        minLength: minLength(3),
+      ),
+      'age': ValidationRules(
+        required: required(),
+        dataType: dataType(DataTypes.NUMBER),
+        minNumber: minNumber(18),
+      ),
+    });
 
-// /// handlers
+    if (!validator.validate()) {
+      return Response.send(validator.getAllErrors, status: 400);
+    }
 
-// Future<Response> handler1(Request request) async {
-//   print("handler 1");
-//   return Response.send("handler 1");
-// }
+    return Response.send({
+      "message": "User created",
+      "data": request.getAllFields(),
+    });
+  }
 
-// Future<Response> handler2(Request request) async {
-//   print("handler 2");
-//   return Response.send("handler 2");
-// }
+  Future<Response> getInfo(Request request) async {
+    return Response.next();
+  }
+}
+
+// Logger Middleware
+class LoggerMiddleware extends Middleware {
+  @override
+  Future<Response> handle(Request request) async {
+    print("[LOG] ${request.method} ${request.httpRequest.uri.path}");
+    return Response.next();
+  }
+}
+
+// Response Time Middleware
+class ResponseTimeMiddleware extends Middleware {
+  @override
+  Future<Response> handle(Request request) async {
+    print(
+        "${request.method} ${request.httpRequest.uri.path} ${DateTime.now()}");
+    return Response.send({
+      "name": "Alice",
+      "age": 25,
+    });
+  }
+}
+
+// Timer Wrapper-Middleware
+class TimerWrapper extends Wrapper {
+  @override
+  Future<Response> handle(
+    Request request,
+    Future<Response> Function() nextHandler,
+  ) async {
+    final start = DateTime.now();
+    final response = await nextHandler();
+    final end = DateTime.now();
+    print(
+        "[TIMER] Request processed in ${end.difference(start).inMilliseconds}ms");
+
+    response.addHeader("Content-Type", "application/json");
+    return response;
+  }
+}

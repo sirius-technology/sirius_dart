@@ -4,7 +4,6 @@ import 'package:sirius_backend/sirius_backend.dart';
 import 'package:sirius_backend/src/constants.dart';
 import 'package:sirius_backend/src/handler.dart';
 import 'package:sirius_backend/src/helpers/logging.dart';
-import 'package:sirius_backend/src/wrapper.dart';
 
 /// Sirius is a lightweight and extensible HTTP and WebSocket server framework for Dart.
 ///
@@ -109,12 +108,11 @@ class Sirius {
 
     siriusGroup._beforeMiddlewareList.addAll(_beforeMiddlewareList);
     siriusGroup._afterMiddlewareList.addAll(_afterMiddlewareList);
+    siriusGroup._wrapperList.addAll(_wrapperList);
 
     callback(siriusGroup);
 
     siriusGroup._routesMap.forEach((method, pathMap) {
-      siriusGroup._wrapperList.addAll(_wrapperList);
-
       for (final entry in pathMap.entries) {
         final fullPath = "$prefix${entry.key}";
         _routesMap.putIfAbsent(method, () => {});
@@ -266,7 +264,6 @@ class Sirius {
     Function(HttpServer server)? callback,
   }) async {
     _handler.registerRoutes(_routesMap, _socketRoutesMap);
-    logMap2(_routesMap);
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 
     if (callback != null) {

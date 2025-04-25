@@ -1,3 +1,7 @@
+## 2.0.1
+- 🐞 Minor bug fixes and internal improvements
+- 🔧 Improved stability and error handling in route registration and middleware execution
+
 ## 2.0.0
 ### 🚀 Major Release – Sirius Framework 2.0
 

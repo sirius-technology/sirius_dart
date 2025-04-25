@@ -31,7 +31,7 @@ class Response {
   ///
   /// Developers can pass additional metadata such as:
   /// `"Content-Type": "application/json"`.
-  Map<String, dynamic>? headers = {};
+  Map<String, dynamic> headers = {};
 
   /// A callback to override default headers using [HttpHeaders].
   ///
@@ -69,7 +69,7 @@ class Response {
   Response([
     this.data,
     this.statusCode = HttpStatus.ok,
-    this.headers,
+    this.headers = const {},
     this.overrideHeaders,
     this.isNext = false,
     this.passedData,
@@ -92,9 +92,26 @@ class Response {
     return Response(
       data,
       status,
-      headers,
+      headers ?? {},
       overrideHeaders,
     );
+  }
+
+  /// Adds a custom header to the response.
+  ///
+  /// This can be used to dynamically insert a header key-value pair,
+  /// such as `X-Custom-Header`, `Authorization`, etc.
+  ///
+  /// If the key already exists, it will be overwritten.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// final response = Response.send({"message": "Success"});
+  /// response.addHeader("X-Powered-By", "Sirius");
+  /// return response;
+  /// ```
+  void addHeader(String key, String value) {
+    headers[key] = value;
   }
 
   /// Signals the framework to continue request handling to the next handler.

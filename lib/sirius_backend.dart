@@ -10,6 +10,7 @@ export 'src/enums/date_time_formats.dart';
 export 'src/helpers/file_watcher.dart';
 export 'src/validator.dart';
 export 'src/validation_rules.dart';
+export 'src/wrapper.dart';
 
 // TODO: Export any libraries intended for clients of this package.
 
