@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:sirius_backend/sirius_backend.dart';
+import 'package:sirius_backend/src/helpers/logging.dart';
+
 import 'constants.dart';
 import 'request.dart';
 import 'response.dart';
@@ -17,7 +20,9 @@ class Handler {
             List<Future<Response> Function(Request request)>
           )>> _mainRoutes = {};
 
-  final Map<String, void Function(WebSocket socket)> _mainSocketRoutes = {};
+  final Map<String,
+          void Function(WebSocketRequest request, WebSocket webSocket)>
+      _mainSocketRoutes = {};
 
   void registerRoutes(
       Map<
@@ -31,14 +36,14 @@ class Handler {
                     List<Future<Response> Function(Request request)>
                   )>>
           routesMap,
-      Map<String, void Function(WebSocket socket)> socketRoutesMap) {
+      Map<String, void Function(WebSocketRequest request, WebSocket webSocket)>
+          socketRoutesMap) {
     _mainRoutes.addAll(routesMap);
     _mainSocketRoutes.addAll(socketRoutesMap);
   }
 
   void handleRequest(HttpRequest request) {
-    if (_mainSocketRoutes.containsKey(request.uri.path) &&
-        WebSocketTransformer.isUpgradeRequest(request)) {
+    if (WebSocketTransformer.isUpgradeRequest(request)) {
       _handleSocketRequest(request);
     } else {
       _handleHttpRequest(request);
@@ -46,11 +51,44 @@ class Handler {
   }
 
   void _handleSocketRequest(HttpRequest request) {
-    WebSocketTransformer.upgrade(request).then((WebSocket socket) {
-      // calling websocket functions
-      _mainSocketRoutes[request.uri.path]!(socket);
-    }).catchError((e) {
-      _sendErrorResponse(request, HttpStatus.internalServerError, e.toString());
+    WebSocketTransformer.upgrade(request).then((WebSocket webSocket) async {
+      final uriPath = request.uri.path;
+      Map<String, String> pathVariables = {};
+
+      void Function(WebSocketRequest request, WebSocket webSocket)? handler =
+          _mainSocketRoutes[uriPath];
+
+      if (handler == null) {
+        for (var val in _mainSocketRoutes.entries) {
+          Map<String, String>? matches = _matchRoute(val.key, uriPath);
+          if (matches != null) {
+            handler = val.value;
+            pathVariables = matches;
+            break;
+          }
+        }
+
+        if (handler == null) {
+          webSocket.add(jsonEncode({
+            "status": false,
+            "type": "error",
+            "message": "WebSocket path not found: $uriPath",
+          }));
+
+          await webSocket.close(
+            WebSocketStatus.normalClosure,
+            "Invalid WebSocket route",
+          );
+
+          return;
+        }
+      }
+      WebSocketRequest webSocketRequest =
+          WebSocketRequest(request, pathVariables);
+      handler(webSocketRequest, webSocket);
+    }).catchError((err, stackTrace) {
+      logError("WebSocket upgrade failed: ${err.toString()}");
+      print(stackTrace);
     });
   }
 

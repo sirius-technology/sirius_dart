@@ -21,7 +21,7 @@ It features powerful routing, composable middleware, validation, and wrapper lif
 
 ```yaml
 dependencies:
-  sirius_backend: ^2.0.1
+  sirius_backend: ^2.0.2
 ```
 
 Then run:
@@ -148,6 +148,24 @@ final userData = request.receiveData; // Passed via middleware
 
 ---
 
+## 🧭 Request Lifecycle Flow
+
+```
+Incoming Request
+  └── Global Wrapper (Entry)
+      └── Route Wrapper (Entry)
+          └── Global Before Middleware(s)
+              └── Route Before Middleware(s)
+                  └── Route Handler
+                      └── Route After Middleware(s)
+                          └── Global After Middleware(s)
+                              └── Route Wrapper (Exit)
+                                  └── Global Wrapper (Exit)
+                                      └── Response Sent
+```
+
+---
+
 ## ✅ Validation
 
 ### Basic Validation
@@ -221,9 +239,9 @@ return Response.send({'ok': true}, overrideHeaders: (headers) {
 ## 🔄 WebSocket Support
 
 ```dart
-sirius.webSocket('/echo', (socket) {
-  socket.listen((msg) {
-    socket.add('Echo: $msg');
+sirius.webSocket('/echo', (WebSocketRequest request, WebSocket webSocket) {
+  webSocket.listen((msg) {
+    webSocket.add('Echo: $msg');
   });
 });
 ```

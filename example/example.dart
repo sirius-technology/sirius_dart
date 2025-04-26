@@ -22,9 +22,10 @@ void main() async {
   });
 
   // WebSocket route
-  sirius.webSocket('/chat', (socket) {
-    socket.listen((message) {
-      socket.add("Echo: $message");
+  sirius.webSocket('/chat/:var', (request, webSocket) {
+    print(request.allPathVariables);
+    webSocket.listen((message) {
+      webSocket.add("Echo: $message");
     });
   });
 

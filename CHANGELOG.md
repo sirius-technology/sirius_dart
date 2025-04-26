@@ -1,3 +1,7 @@
+## 2.0.2
+- Improved WebSocket connection handling for better scalability and performance.
+- Enhanced error handling and message validation for WebSocket interactions.
+
 ## 2.0.1
 - 🐞 Minor bug fixes and internal improvements
 - 🔧 Improved stability and error handling in route registration and middleware execution

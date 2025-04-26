@@ -43,7 +43,9 @@ class Sirius {
               Request request, Future<Response> Function() nextHandler)>
       _wrapperList = [];
 
-  final Map<String, void Function(WebSocket socket)> _socketRoutesMap = {};
+  final Map<String,
+          void Function(WebSocketRequest request, WebSocket webSocket)>
+      _socketRoutesMap = {};
   final List<Future<Response> Function(Request request)> _beforeMiddlewareList =
       [];
   final List<Future<Response> Function(Request request)> _afterMiddlewareList =
@@ -234,13 +236,14 @@ class Sirius {
   ///
   /// Example:
   /// ```dart
-  /// sirius.webSocket('/chat', (socket) {
-  ///   socket.listen((data) {
-  ///     socket.add("Echo: $data");
+  /// sirius.webSocket('/chat', (WebSocketRequest request, WebSocket webSocket) {
+  ///   webSocket.listen((data) {
+  ///     webSocket.add("Echo: $data");
   ///   });
   /// });
   /// ```
-  void webSocket(String path, void Function(WebSocket socket) handler) {
+  void webSocket(String path,
+      void Function(WebSocketRequest request, WebSocket webSocket) handler) {
     path = _autoAddSlash(path);
 
     if (_socketRoutesMap.containsKey(path)) {
