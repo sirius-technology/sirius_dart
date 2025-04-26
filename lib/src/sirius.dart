@@ -221,10 +221,9 @@ class Sirius {
         wrapperList = [..._wrapperList, ...wrappers.map((wr) => wr.handle)];
 
     if (_routesMap.containsKey(method)) {
-      if (_routesMap[path]!.containsKey(path)) {
+      if (_routesMap[method]!.containsKey(path)) {
         throwError("method {$method} and path {$path} is already registered.");
       } else {
-        // _routesMap[path]![method] = middlewareHandlerList;
         _routesMap[method]![path] = (wrapperList, middlewareHandlerList);
       }
       return;
