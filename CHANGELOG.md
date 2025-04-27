@@ -1,3 +1,10 @@
+## 2.0.4
+- Web socket error handling
+- Improved performance 
+
+## 2.0.3
+- Minor error and bug fixes
+
 ## 2.0.2
 - Improved WebSocket connection handling for better scalability and performance.
 - Enhanced error handling and message validation for WebSocket interactions.
