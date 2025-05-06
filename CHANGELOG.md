@@ -1,12 +1,13 @@
 ## 2.1.0
-- ✨ Added event-based WebSocket communication for structured real-time messaging.
-- 🧹 Removed WebSocketRequest and replaced with unified Request class for WebSocket handling.
-- 🔌 Added WebSocket integration into connection middleware flow.
-- 🧠 Added SocketConnection class to manage WebSocket events, raw messages, middleware, and connection lifecycle.
-  → Event registration (onEvent, onceEvent)
-  → Raw message handling (sendData, onData)
-  → Middleware validation
-  → Connection lifecycle hooks (disconnect, error)
+- ✨ **Added** event-based WebSocket communication for structured real-time messaging.  
+- 🧹 **Removed** `WebSocketRequest` and replaced with a unified `Request` class for WebSocket handling.  
+- 🔌 **Added** WebSocket integration into connection middleware flow.  
+- 🧠 **Added** `SocketConnection` class to manage WebSocket events, raw messages, middleware, and connection lifecycle:  
+  - 📥 Event registration: `onEvent`, `onceEvent`  
+  - 🧾 Raw message handling: `sendData`, `onData`  
+  - 🛡️ Middleware validation  
+  - 🔁 Connection lifecycle hooks: `disconnect`, `error`  
+
 
 ## 2.0.4
 - Web socket error handling

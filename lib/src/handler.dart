@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:sirius_backend/sirius_backend.dart';
-import 'package:sirius_backend/socket_connection.dart';
 import 'package:sirius_backend/src/helpers/parse_stack_trace.dart';
 import 'constants.dart';
 

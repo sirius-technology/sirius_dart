@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:sirius_backend/sirius_backend.dart';
 import 'package:sirius_backend/src/constants.dart';
 import 'package:sirius_backend/src/handler.dart';
-import 'package:sirius_backend/src/helpers/logging.dart';
 
 /// Sirius is a lightweight and extensible HTTP and WebSocket server framework for Dart.
 ///
