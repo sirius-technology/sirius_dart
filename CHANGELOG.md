@@ -1,3 +1,6 @@
+## 2.1.1
+- Web socket minor bug fixes.
+
 ## 2.1.0
 - ✨ **Added** event-based WebSocket communication for structured real-time messaging.  
 - 🧹 **Removed** `WebSocketRequest` and replaced with a unified `Request` class for WebSocket handling.  

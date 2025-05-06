@@ -141,6 +141,19 @@ class Request {
   /// ```
   String get method => _request.method;
 
+  /// Returns the path of the request URL (e.g., `/api/user`).
+  ///
+  /// This excludes query parameters and scheme/host details.
+  ///
+  /// ### Example
+  /// ```dart
+  /// final routePath = request.path;
+  /// if (routePath == '/login') {
+  ///   // Handle login route
+  /// }
+  /// ```
+  String get path => _request.uri.path;
+
   /// Returns the original [HttpRequest] object from `dart:io`.
   ///
   /// Useful if you need to access low-level request data directly.
