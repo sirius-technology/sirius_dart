@@ -239,11 +239,27 @@ return Response.send({'ok': true}, overrideHeaders: (headers) {
 ## 🔄 WebSocket Support
 
 ```dart
-sirius.webSocket('/echo', (WebSocketRequest request, WebSocket webSocket) {
-  webSocket.listen((msg) {
-    webSocket.add('Echo: $msg');
+sirius.webSocket('/chat', (request, socketConn) {
+    final connId = socketConn.getId;
+    print("Client connected: $connId");
+
+    // Respond to a custom event
+    socketConn.onEvent("ping", (data) {
+      print("Received ping: $data");
+      socketConn.sendEvent("pong", {"message": "Pong received!", "echo": data});
+    });
+
+    // Listen to raw messages (not event-based)
+    socketConn.onData((msg) {
+      print("Raw message: $msg");
+      socketConn.sendData("Echo: $msg");
+    });
+
+    // Handle disconnection
+    socketConn.onDisconnect(() {
+      print("Client disconnected: $connId");
+    });
   });
-});
 ```
 
 ---

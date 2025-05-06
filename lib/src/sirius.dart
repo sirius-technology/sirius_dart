@@ -27,30 +27,20 @@ import 'package:sirius_backend/src/helpers/logging.dart';
 /// });
 /// ```
 class Sirius {
-  final Map<
-      String,
-      Map<
-          String,
-          (
-            List<
-                Future<Response> Function(
-                    Request request, Future<Response> Function() nextHandler)>,
-            List<Future<Response> Function(Request request)>
-          )>> _routesMap = {};
-
-  final List<
-          Future<Response> Function(
-              Request request, Future<Response> Function() nextHandler)>
-      _wrapperList = [];
-
   final Map<String,
-          void Function(WebSocketRequest request, WebSocket webSocket)>
-      _socketRoutesMap = {};
-  final List<Future<Response> Function(Request request)> _beforeMiddlewareList =
-      [];
-  final List<Future<Response> Function(Request request)> _afterMiddlewareList =
-      [];
+          Map<String, (List<WrapperFunction>, List<HttpHandlerFunction>)>>
+      _routesMap = {};
+
+  final List<WrapperFunction> _wrapperList = [];
+
+  final Map<String, SocketHandlerFunction> _socketRoutesMap = {};
+
+  final List<HttpHandlerFunction> _beforeMiddlewareList = [];
+
+  final List<HttpHandlerFunction> _afterMiddlewareList = [];
+
   final Handler _handler = Handler();
+
   HttpServer? _server;
 
   String _autoAddSlash(String path) {
@@ -116,7 +106,7 @@ class Sirius {
 
     siriusGroup._routesMap.forEach((method, pathMap) {
       for (final entry in pathMap.entries) {
-        final fullPath = "$prefix${entry.key}";
+        final String fullPath = "$prefix${entry.key}";
         _routesMap.putIfAbsent(method, () => {});
         _routesMap[method]![fullPath] = entry.value;
       }
@@ -136,7 +126,7 @@ class Sirius {
   /// ```
   void get(
     String path,
-    Future<Response> Function(Request request) handler, {
+    HttpHandlerFunction handler, {
     List<Middleware> useBefore = const [],
     List<Middleware> useAfter = const [],
     List<Wrapper> wrap = const [],
@@ -148,7 +138,7 @@ class Sirius {
   /// Registers a POST route.
   void post(
     String path,
-    Future<Response> Function(Request request) handler, {
+    HttpHandlerFunction handler, {
     List<Middleware> useBefore = const [],
     List<Middleware> useAfter = const [],
     List<Wrapper> wrap = const [],
@@ -160,7 +150,7 @@ class Sirius {
   /// Registers a PUT route.
   void put(
     String path,
-    Future<Response> Function(Request request) handler, {
+    HttpHandlerFunction handler, {
     List<Middleware> useBefore = const [],
     List<Middleware> useAfter = const [],
     List<Wrapper> wrap = const [],
@@ -172,7 +162,7 @@ class Sirius {
   /// Registers a PATCH route.
   void patch(
     String path,
-    Future<Response> Function(Request request) handler, {
+    HttpHandlerFunction handler, {
     List<Middleware> useBefore = const [],
     List<Middleware> useAfter = const [],
     List<Wrapper> wrap = const [],
@@ -184,7 +174,7 @@ class Sirius {
   /// Registers a DELETE route.
   void delete(
     String path,
-    Future<Response> Function(Request request) handler, {
+    HttpHandlerFunction handler, {
     List<Middleware> useBefore = const [],
     List<Middleware> useAfter = const [],
     List<Wrapper> wrap = const [],
@@ -196,18 +186,18 @@ class Sirius {
   void _addRoute(
     String path,
     String method,
-    Future<Response> Function(Request request) handler,
+    HttpHandlerFunction handler,
     List<Middleware> beforeMiddlewares,
     List<Middleware> afterMiddlewares,
     List<Wrapper> wrappers,
   ) {
-    List<Future<Response> Function(Request request)> beforeRouteMiddlewareList =
+    List<HttpHandlerFunction> beforeRouteMiddlewareList =
         beforeMiddlewares.map((mw) => mw.handle).toList();
 
-    List<Future<Response> Function(Request request)> afterRouteMiddlewareList =
+    List<HttpHandlerFunction> afterRouteMiddlewareList =
         afterMiddlewares.map((mw) => mw.handle).toList();
 
-    List<Future<Response> Function(Request request)> middlewareHandlerList = [
+    List<HttpHandlerFunction> middlewareHandlerList = [
       ..._beforeMiddlewareList,
       ...beforeRouteMiddlewareList,
       handler,
@@ -215,14 +205,15 @@ class Sirius {
       ..._afterMiddlewareList,
     ];
 
-    List<
-            Future<Response> Function(
-                Request request, Future<Response> Function() nextHandler)>
-        wrapperList = [..._wrapperList, ...wrappers.map((wr) => wr.handle)];
+    List<WrapperFunction> wrapperList = [
+      ..._wrapperList,
+      ...wrappers.map((wr) => wr.handle)
+    ];
 
     if (_routesMap.containsKey(method)) {
       if (_routesMap[method]!.containsKey(path)) {
-        throwError("method {$method} and path {$path} is already registered.");
+        throw Exception(
+            "method {$method} and path {$path} is already registered.");
       } else {
         _routesMap[method]![path] = (wrapperList, middlewareHandlerList);
       }
@@ -241,12 +232,11 @@ class Sirius {
   ///   });
   /// });
   /// ```
-  void webSocket(String path,
-      void Function(WebSocketRequest request, WebSocket webSocket) handler) {
+  void webSocket(String path, SocketHandlerFunction handler) {
     path = _autoAddSlash(path);
 
     if (_socketRoutesMap.containsKey(path)) {
-      throwError("WebSocket path {$path} is already registered.");
+      throw Exception("WebSocket path {$path} is already registered.");
     } else {
       _socketRoutesMap[path] = handler;
     }
@@ -264,6 +254,8 @@ class Sirius {
   Future<void> start({
     int port = 3333,
     Function(HttpServer server)? callback,
+    void Function()? onClosed,
+    Function? onError,
   }) async {
     _handler.registerRoutes(_routesMap, _socketRoutesMap);
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
@@ -272,9 +264,13 @@ class Sirius {
       callback(_server!);
     }
 
-    await for (HttpRequest request in _server!) {
-      _handler.handleRequest(request);
-    }
+    _server!.listen(
+      (HttpRequest request) {
+        _handler.handleRequest(request);
+      },
+      onDone: onClosed,
+      onError: onError,
+    );
   }
 
   /// Closes the server gracefully.
@@ -285,4 +281,7 @@ class Sirius {
       await _server!.close(force: force);
     }
   }
+
+  /// Access the raw [HttpServer] instance.
+  HttpServer? get rawHttpServer => _server;
 }

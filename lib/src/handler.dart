@@ -1,38 +1,30 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:sirius_backend/sirius_backend.dart';
+import 'package:sirius_backend/socket_connection.dart';
+import 'package:sirius_backend/src/helpers/parse_stack_trace.dart';
 import 'constants.dart';
 
-class Handler {
-  final Map<
-      String,
-      Map<
-          String,
-          (
-            List<
-                Future<Response> Function(
-                    Request request, Future<Response> Function() nextHandler)>,
-            List<Future<Response> Function(Request request)>
-          )>> _mainRoutes = {};
+typedef WrapperFunction = Future<Response> Function(
+    Request request, Future<Response> Function() nextHandler);
 
+typedef HttpHandlerFunction = Future<Response> Function(Request request);
+
+typedef SocketHandlerFunction = void Function(
+    Request request, SocketConnection webSocket);
+
+class Handler {
   final Map<String,
-          void Function(WebSocketRequest request, WebSocket webSocket)>
-      _mainSocketRoutes = {};
+          Map<String, (List<WrapperFunction>, List<HttpHandlerFunction>)>>
+      _mainRoutes = {};
+
+  final Map<String, SocketHandlerFunction> _mainSocketRoutes = {};
 
   void registerRoutes(
-      Map<
-              String,
-              Map<
-                  String,
-                  (
-                    List<
-                        Future<Response> Function(Request request,
-                            Future<Response> Function() nextHandler)>,
-                    List<Future<Response> Function(Request request)>
-                  )>>
+      Map<String,
+              Map<String, (List<WrapperFunction>, List<HttpHandlerFunction>)>>
           routesMap,
-      Map<String, void Function(WebSocketRequest request, WebSocket webSocket)>
-          socketRoutesMap) {
+      Map<String, SocketHandlerFunction> socketRoutesMap) {
     _mainRoutes.addAll(routesMap);
     _mainSocketRoutes.addAll(socketRoutesMap);
   }
@@ -48,7 +40,7 @@ class Handler {
   void _handleSocketRequest(HttpRequest request) {
     final uriPath = request.uri.path;
     Map<String, String> pathVariables = {};
-    void Function(WebSocketRequest request, WebSocket webSocket)? handler =
+    void Function(Request request, SocketConnection webSocket)? handler =
         _mainSocketRoutes[uriPath];
 
     if (handler == null) {
@@ -62,18 +54,19 @@ class Handler {
       }
 
       if (handler == null) {
-        _sendErrorResponse(request, HttpStatus.notFound, "Path not found");
+        _sendErrorResponse(
+            request, HttpStatus.notFound, "Path not found", null);
         return;
       }
     }
 
     WebSocketTransformer.upgrade(request).then((WebSocket webSocket) async {
-      WebSocketRequest webSocketRequest =
-          WebSocketRequest(request, pathVariables);
-      handler!(webSocketRequest, webSocket);
+      Request webSocketRequest = Request(request, pathVariables, null);
+
+      handler!(webSocketRequest, SocketConnection(webSocket));
     }).catchError((err, stackTrace) {
       _sendErrorResponse(
-          request, HttpStatus.internalServerError, err.toString());
+          request, HttpStatus.internalServerError, err.toString(), stackTrace);
     });
   }
 
@@ -84,17 +77,14 @@ class Handler {
     Map<String, String> pathVariables = {};
 
     if (_mainRoutes[method] == null) {
-      _sendErrorResponse(request, HttpStatus.notFound, "Path not found");
+      _sendErrorResponse(request, HttpStatus.notFound, "Path not found", null);
       return;
     }
 
-    List<Future<Response> Function(Request request)>? middlewareHandlerList =
+    List<HttpHandlerFunction>? middlewareHandlerList =
         _mainRoutes[method]![uriPath]?.$2;
 
-    List<
-            Future<Response> Function(
-                Request request, Future<Response> Function() nextHandler)>
-        wrapperList = _mainRoutes[method]![uriPath]?.$1 ?? [];
+    List<WrapperFunction> wrapperList = _mainRoutes[method]![uriPath]?.$1 ?? [];
 
     if (middlewareHandlerList == null) {
       final routeEntries = _mainRoutes[method];
@@ -112,7 +102,8 @@ class Handler {
       }
 
       if (middlewareHandlerList == null) {
-        _sendErrorResponse(request, HttpStatus.notFound, "Path not found");
+        _sendErrorResponse(
+            request, HttpStatus.notFound, "Path not found", null);
         return;
       }
     }
@@ -143,18 +134,17 @@ class Handler {
       }
 
       _sendSuccessResponse(request, response);
-    } catch (e) {
-      _sendErrorResponse(request, HttpStatus.internalServerError, e.toString());
+    } catch (e, stackTrace) {
+      _sendErrorResponse(
+          request, HttpStatus.internalServerError, e.toString(), stackTrace);
     }
     // ---------------------------------
   }
 
   Future<Response> _executeHandlerAndMiddleware(
-      Request request,
-      List<Future<Response> Function(Request request)>
-          middlewareHandlerList) async {
-    for (final handler in middlewareHandlerList) {
-      final response = await handler(request);
+      Request request, List<HttpHandlerFunction> middlewareHandlerList) async {
+    for (HttpHandlerFunction handler in middlewareHandlerList) {
+      Response response = await handler(request);
 
       if (response.passedData != null) {
         request.passData = response.passedData;
@@ -191,11 +181,28 @@ class Handler {
       ..close();
   }
 
-  void _sendErrorResponse(HttpRequest request, int code, String message) {
+  void _sendErrorResponse(
+      HttpRequest request, int code, String message, StackTrace? stackTrace) {
+    Map<String, dynamic> errorResponse = {
+      "status": false,
+      "code": code,
+      "message": message,
+    };
+
+    if (stackTrace != null) {
+      List<Map<String, dynamic>>? structreTrace = parseStackTrace(stackTrace);
+      Map<String, dynamic> traceResponse = {
+        "file": structreTrace?.elementAt(0)["file"],
+        "line": structreTrace?.elementAt(0)["line"],
+        "trace": structreTrace,
+      };
+      errorResponse.addAll(traceResponse);
+    }
+
     request.response
       ..statusCode = code
       ..headers.contentType = ContentType.json
-      ..write(jsonEncode({"status": false, "message": message}))
+      ..write(jsonEncode(errorResponse))
       ..close();
   }
 

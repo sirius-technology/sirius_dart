@@ -147,9 +147,9 @@ class Request {
   ///
   /// ### Example
   /// ```dart
-  /// final connectionInfo = request.httpRequest.connectionInfo;
+  /// final connectionInfo = request.rawHttpRequest.connectionInfo;
   /// ```
-  HttpRequest get httpRequest => _request;
+  HttpRequest get rawHttpRequest => _request;
 
   /// Merges and returns all fields from path variables, query parameters,
   /// and JSON body into a single map.

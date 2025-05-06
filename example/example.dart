@@ -22,12 +22,30 @@ void main() async {
   });
 
   // WebSocket route
-  sirius.webSocket('/chat', (request, webSocket) {
-    webSocket.listen((message) {
-      webSocket.add("Echo: $message");
+  // Simple WebSocket route without rooms/broadcast
+  sirius.webSocket('/chat', (request, socketConn) {
+    final connId = socketConn.getId;
+    print("Client connected: $connId");
+
+    // Respond to a custom event
+    socketConn.onEvent("ping", (data) {
+      print("Received ping: $data");
+      socketConn.sendEvent("pong", {"message": "Pong received!", "echo": data});
+    });
+
+    // Listen to raw messages (not event-based)
+    socketConn.onData((msg) {
+      print("Raw message: $msg");
+      socketConn.sendData("Echo: $msg");
+    });
+
+    // Handle disconnection
+    socketConn.onDisconnect(() {
+      print("Client disconnected: $connId");
     });
   });
 
+  // Start the server
   sirius.start(
       port: 3333,
       callback: (server) {
@@ -76,7 +94,7 @@ class UserController {
 class LoggerMiddleware extends Middleware {
   @override
   Future<Response> handle(Request request) async {
-    print("[LOG] ${request.method} ${request.httpRequest.uri.path}");
+    print("[LOG] ${request.method} ${request.rawHttpRequest.uri.path}");
     return Response.next();
   }
 }
@@ -86,7 +104,7 @@ class ResponseTimeMiddleware extends Middleware {
   @override
   Future<Response> handle(Request request) async {
     print(
-        "${request.method} ${request.httpRequest.uri.path} ${DateTime.now()}");
+        "${request.method} ${request.rawHttpRequest.uri.path} ${DateTime.now()}");
     return Response.send({
       "name": "Alice",
       "age": 25,
