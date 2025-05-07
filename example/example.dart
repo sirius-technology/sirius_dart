@@ -62,7 +62,7 @@ UserController userController = UserController();
 
 class UserController {
   Future<Response> createUser(Request request) async {
-    final validator = Validator(request.getAllFields(), {
+    final validator = Validator(request.getAllFields, {
       'name': ValidationRules(
         required: required(message: "Name is required"),
         minLength: minLength(3),
@@ -80,7 +80,7 @@ class UserController {
 
     return Response.send({
       "message": "User created",
-      "data": request.getAllFields(),
+      "data": request.getAllFields,
     });
   }
 

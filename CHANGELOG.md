@@ -1,9 +1,14 @@
+## 2.1.3
+- Optimized the `Request` class for more efficient and safer data access
+- Added `getJsonBody` getter with fallback for null safety
+- Improved internal null handling for request parsing
+
 ## 2.1.2
-- Added `Response.sendJson()` response in Response class
-- Minor bug and error fixes
+- Added `Response.sendJson()` for simplified JSON responses
+- Fixed minor bugs and error handling issues
 
 ## 2.1.1
-- Web socket minor bug fixes.
+- Minor bug fixes related to WebSocket functionality
 
 ## 2.1.0
 - ✨ **Added** event-based WebSocket communication for structured real-time messaging.  

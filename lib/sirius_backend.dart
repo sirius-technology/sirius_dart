@@ -20,3 +20,5 @@ export 'src/socket_connection.dart';
 // need to add middleware in web sokets also
 
 // Exception shown in production and error logs creation
+
+// Validator( , , handleException = true/false) for datatype safety

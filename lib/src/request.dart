@@ -77,6 +77,19 @@ class Request {
   /// ```
   Map<String, dynamic>? get jsonBody => _body;
 
+  /// Returns the parsed JSON body as a non-nullable `Map<String, dynamic>`.
+  ///
+  /// If the body is `null`, returns an empty map instead.
+  ///
+  /// Useful when you want to avoid null checks while accessing body data.
+  ///
+  /// ### Example
+  /// ```dart
+  /// final data = request.getJsonBody;
+  /// final name = data['name'];
+  /// ```
+  Map<String, dynamic> get getJsonBody => _body ?? {};
+
   /// Returns the value from the JSON body for a given [key].
   ///
   /// ### Example
@@ -168,11 +181,9 @@ class Request {
   /// and JSON body into a single map.
   ///
   /// Priority (in case of key conflicts): JSON body > query params > path variables.
-  Map<String, dynamic> getAllFields() {
-    return {
-      ..._pathVariables, // lowest priority
-      ...allQueryParams,
-      ...(jsonBody ?? {}), // highest priority
-    };
-  }
+  Map<String, dynamic> get getAllFields => {
+        ..._pathVariables, // lowest priority
+        ...allQueryParams,
+        ...(jsonBody ?? {}), // highest priority
+      };
 }
