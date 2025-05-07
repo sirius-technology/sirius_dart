@@ -1,6 +1,6 @@
 name: sirius_backend
 description: A powerful Dart backend framework for building scalable APIs.
-version: 2.1.1
+version: 2.1.2
 homepage: https://github.com/sirius-technology/sirius_dart
 
 environment:

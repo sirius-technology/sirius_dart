@@ -1,3 +1,7 @@
+## 2.1.2
+- Added `Response.sendJson()` response in Response class
+- Minor bug and error fixes
+
 ## 2.1.1
 - Web socket minor bug fixes.
 

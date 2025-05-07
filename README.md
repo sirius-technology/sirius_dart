@@ -98,7 +98,7 @@ class AuthMiddleware extends Middleware {
       request.passData = {'userId': 123};
       return Response.next();
     }
-    return Response.send({'error': 'Unauthorized'}, status: 401);
+    return Response.send({'error': 'Unauthorized'}, statusCode: 401);
   }
 }
 ```
@@ -177,7 +177,7 @@ final validator = Validator(request.getAllFields(), {
 });
 
 if (!validator.validate()) {
-  return Response.send(validator.getAllErrors, status: 400);
+  return Response.send(validator.getAllErrors, statusCode: 400);
 }
 ```
 
@@ -222,7 +222,8 @@ if (!validator.validate()) {
 
 ```dart
 return Response.send({"message": "Success"});
-return Response.send({"error": "Unauthorized"}, status: 401);
+return Response.send({"error": "Unauthorized"}, statusCode: 401);
+return Response.sendJson({"error": "Unauthorized"}, statusCode: 401);
 return Response.next(); // To continue in middleware/chain
 ```
 

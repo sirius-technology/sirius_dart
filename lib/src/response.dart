@@ -11,11 +11,11 @@ import 'dart:io';
 /// return Response.send({"message": "OK"});
 /// ```
 ///
-/// ### Example with Status and Headers:
+/// ### Example with StatusCode and Headers:
 /// ```dart
 /// return Response.send(
 ///   {"error": "Not Found"},
-///   status: HttpStatus.notFound,
+///   statusCode: HttpStatus.notFound,
 ///   headers: {"X-Custom-Header": "value"},
 /// );
 /// ```
@@ -55,7 +55,7 @@ class Response {
   /// Access this via `request.receiveData`.
   dynamic passedData;
 
-  /// Constructs a [Response] instance with optional data, status, headers,
+  /// Constructs a [Response] instance with optional data, statusCode, headers,
   /// override logic, continuation flag, and passed data.
   ///
   /// ### Example:
@@ -85,14 +85,46 @@ class Response {
   /// ```
   static Response send(
     dynamic data, {
-    int status = HttpStatus.ok,
+    int statusCode = HttpStatus.ok,
     Map<String, String>? headers,
     void Function(HttpHeaders headers)? overrideHeaders,
   }) {
     return Response(
       data,
-      status,
+      statusCode,
       headers ?? {},
+      overrideHeaders,
+    );
+  }
+
+  /// Sends a JSON response with appropriate `Content-Type` header.
+  ///
+  /// Automatically sets `Content-Type: application/json` and accepts any serializable
+  /// Dart object (like Map or List) as the response body.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// return Response.sendJson({"message": "Success"});
+  /// ```
+  ///
+  /// ### Example with custom statusCode and headers:
+  /// ```dart
+  /// return Response.sendJson(
+  ///   {"error": "Unauthorized"},
+  ///   statusCode: HttpStatus.unauthorized,
+  ///   headers: {"X-Trace-Id": "abc123"},
+  /// );
+  /// ```
+  static Response sendJson(
+    dynamic data, {
+    int statusCode = HttpStatus.ok,
+    Map<String, String>? headers,
+    void Function(HttpHeaders headers)? overrideHeaders,
+  }) {
+    return Response(
+      data,
+      statusCode,
+      {"Content-Type": "application/json", ...?headers},
       overrideHeaders,
     );
   }
@@ -127,7 +159,7 @@ class Response {
   ///   return Response.next(passData: {"userId": 123});
   /// }
   ///
-  /// return Response.send({"error": "Unauthorized"}, status: HttpStatus.unauthorized);
+  /// return Response.send({"error": "Unauthorized"}, statusCode: HttpStatus.unauthorized);
   /// ```
   static Response next({dynamic passData}) {
     return Response(null, HttpStatus.ok, {}, null, true, passData);

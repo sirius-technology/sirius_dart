@@ -22,7 +22,6 @@ void main() async {
   });
 
   // WebSocket route
-  // Simple WebSocket route without rooms/broadcast
   sirius.webSocket('/chat', (request, socketConn) {
     final connId = socketConn.getId;
     print("Client connected: $connId");
@@ -76,7 +75,7 @@ class UserController {
     });
 
     if (!validator.validate()) {
-      return Response.send(validator.getAllErrors, status: 400);
+      return Response.send(validator.getAllErrors, statusCode: 400);
     }
 
     return Response.send({
