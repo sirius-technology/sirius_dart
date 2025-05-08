@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:sirius_backend/sirius_backend.dart';
+import 'package:sirius_backend/src/abstract_classes/sirius_exception.dart';
 import 'package:sirius_backend/src/constants.dart';
 import 'package:sirius_backend/src/handler.dart';
 
@@ -26,6 +27,29 @@ import 'package:sirius_backend/src/handler.dart';
 /// });
 /// ```
 class Sirius {
+  /// Sirius is a lightweight and extensible HTTP and WebSocket server framework for Dart.
+  ///
+  /// It supports middleware, route grouping, and request-response management.
+  /// Built to resemble modern web frameworks like Express.js, it is simple yet powerful.
+  ///
+  /// ### Example: Basic HTTP server
+  /// ```dart
+  /// final sirius = Sirius();
+  ///
+  /// sirius.get('/hello', (req) async => Response.send('Hello World'));
+  ///
+  /// await sirius.start(port: 3000);
+  /// ```
+  ///
+  /// ### Example: Grouped routes
+  /// ```dart
+  /// sirius.group('/api', (group) {
+  ///   group.get('/users', userController.getAll);
+  ///   group.post('/users', userController.create);
+  /// });
+  /// ```
+  Sirius();
+
   final Map<String,
           Map<String, (List<WrapperFunction>, List<HttpHandlerFunction>)>>
       _routesMap = {};
@@ -253,10 +277,11 @@ class Sirius {
   Future<void> start({
     int port = 3333,
     Function(HttpServer server)? callback,
+    SiriusException? exceptionHandler,
     void Function()? onClosed,
     Function? onError,
   }) async {
-    _handler.registerRoutes(_routesMap, _socketRoutesMap);
+    _handler.registerRoutes(_routesMap, _socketRoutesMap, exceptionHandler);
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 
     if (callback != null) {

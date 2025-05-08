@@ -1,3 +1,8 @@
+## 2.1.4
+- 🛡️ Added type safety toggle (`enableTypeSafety`) to the `Validator` class for safer and more predictable validation
+- ⚠️ Introduced abstract `SiriusException` class to allow custom HTTP/WebSocket exception handling
+- 🔧 Updated `start()` method to accept user-defined `exceptionHandler` for centralized error management
+
 ## 2.1.3
 - Optimized the `Request` class for more efficient and safer data access
 - Added `getJsonBody` getter with fallback for null safety

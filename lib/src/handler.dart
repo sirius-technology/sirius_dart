@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:sirius_backend/sirius_backend.dart';
+import 'package:sirius_backend/src/abstract_classes/sirius_exception.dart';
 import 'package:sirius_backend/src/helpers/parse_stack_trace.dart';
 import 'constants.dart';
 
@@ -19,13 +20,18 @@ class Handler {
 
   final Map<String, SocketHandlerFunction> _mainSocketRoutes = {};
 
+  SiriusException? _exceptionHandler;
+
   void registerRoutes(
       Map<String,
               Map<String, (List<WrapperFunction>, List<HttpHandlerFunction>)>>
           routesMap,
-      Map<String, SocketHandlerFunction> socketRoutesMap) {
+      Map<String, SocketHandlerFunction> socketRoutesMap,
+      SiriusException? exceptionHandler) {
     _mainRoutes.addAll(routesMap);
     _mainSocketRoutes.addAll(socketRoutesMap);
+
+    _exceptionHandler = exceptionHandler;
   }
 
   void handleRequest(HttpRequest request) {
@@ -54,18 +60,21 @@ class Handler {
 
       if (handler == null) {
         _sendErrorResponse(
-            request, HttpStatus.notFound, "Path not found", null);
+            Request(request, pathVariables, null),
+            HttpStatus.notFound,
+            Exception("Path not found"),
+            StackTrace.current);
         return;
       }
     }
 
-    WebSocketTransformer.upgrade(request).then((WebSocket webSocket) async {
-      Request webSocketRequest = Request(request, pathVariables, null);
+    Request webSocketRequest = Request(request, pathVariables, null);
 
+    WebSocketTransformer.upgrade(request).then((WebSocket webSocket) async {
       handler!(webSocketRequest, SocketConnection(webSocket));
     }).catchError((err, stackTrace) {
       _sendErrorResponse(
-          request, HttpStatus.internalServerError, err.toString(), stackTrace);
+          webSocketRequest, HttpStatus.internalServerError, err, stackTrace);
     });
   }
 
@@ -75,8 +84,13 @@ class Handler {
     Map<String, dynamic>? jsonBody;
     Map<String, String> pathVariables = {};
 
+    if ([POST, PUT, DELETE].contains(method)) {
+      jsonBody = await _getJsonBody(request);
+    }
+
     if (_mainRoutes[method] == null) {
-      _sendErrorResponse(request, HttpStatus.notFound, "Path not found", null);
+      _sendErrorResponse(Request(request, {}, jsonBody), HttpStatus.notFound,
+          Exception("Path not found"), StackTrace.current);
       return;
     }
 
@@ -102,13 +116,12 @@ class Handler {
 
       if (middlewareHandlerList == null) {
         _sendErrorResponse(
-            request, HttpStatus.notFound, "Path not found", null);
+            Request(request, pathVariables, jsonBody),
+            HttpStatus.notFound,
+            Exception("Path not found"),
+            StackTrace.current);
         return;
       }
-    }
-
-    if ([POST, PUT, DELETE].contains(method)) {
-      jsonBody = await _getJsonBody(request);
     }
 
     Request newRequest = Request(request, pathVariables, jsonBody);
@@ -133,9 +146,9 @@ class Handler {
       }
 
       _sendSuccessResponse(request, response);
-    } catch (e, stackTrace) {
+    } catch (err, stackTrace) {
       _sendErrorResponse(
-          request, HttpStatus.internalServerError, e.toString(), stackTrace);
+          newRequest, HttpStatus.internalServerError, err, stackTrace);
     }
     // ---------------------------------
   }
@@ -180,28 +193,38 @@ class Handler {
       ..close();
   }
 
-  void _sendErrorResponse(
-      HttpRequest request, int code, String message, StackTrace? stackTrace) {
-    Map<String, dynamic> errorResponse = {
+  void _sendErrorResponse(Request request, int statusCode, Object exception,
+      StackTrace stackTrace) {
+    List<Map<String, dynamic>>? structureTrace = parseStackTrace(stackTrace);
+
+    Map<String, dynamic> errorResponseData = {
       "status": false,
-      "code": code,
-      "message": message,
+      "code": statusCode,
+      "message": exception.toString(),
+      "file": structureTrace?.elementAt(0)["file"],
+      "line": structureTrace?.elementAt(0)["line"],
+      "trace": structureTrace
     };
 
-    if (stackTrace != null) {
-      List<Map<String, dynamic>>? structreTrace = parseStackTrace(stackTrace);
-      Map<String, dynamic> traceResponse = {
-        "file": structreTrace?.elementAt(0)["file"],
-        "line": structreTrace?.elementAt(0)["line"],
-        "trace": structreTrace,
-      };
-      errorResponse.addAll(traceResponse);
+    Response response = Response.sendJson(
+      errorResponseData,
+      statusCode: statusCode,
+    );
+
+    if (_exceptionHandler != null) {
+      response = _exceptionHandler!.handleException(
+          request, response, statusCode, exception, stackTrace);
     }
 
-    request.response
-      ..statusCode = code
+    request.rawHttpRequest.response
+      ..statusCode = response.statusCode
       ..headers.contentType = ContentType.json
-      ..write(jsonEncode(errorResponse))
+      ..write(jsonEncode(
+        response.data,
+        toEncodable: (nonEncodable) => nonEncodable is DateTime
+            ? nonEncodable.toIso8601String()
+            : nonEncodable.toString(),
+      ))
       ..close();
   }
 

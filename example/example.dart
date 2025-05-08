@@ -1,7 +1,9 @@
 import 'package:sirius_backend/sirius_backend.dart';
+import 'package:sirius_backend/src/abstract_classes/sirius_exception.dart';
 
 void main() async {
-  final sirius = Sirius();
+  // Creates a instance of Sirius.
+  Sirius sirius = Sirius();
 
   // Global Middleware
   sirius.useBefore(LoggerMiddleware());
@@ -49,12 +51,21 @@ void main() async {
       port: 3333,
       callback: (server) {
         print("Server is running");
-      });
+      },
+      exceptionHandler: ApiExceptionHandler());
 
   // Server will restart on save
   fileWatcher("example/example.dart", callback: () async {
     await sirius.close();
   });
+}
+
+class ApiExceptionHandler extends SiriusException {
+  @override
+  Response handleException(Request request, Response response, int statusCode,
+      Object exception, StackTrace stackTrace) {
+    return response;
+  }
 }
 
 // Controller Class

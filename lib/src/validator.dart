@@ -24,18 +24,85 @@ class Validator {
   /// Throws an [Exception] if the request body is missing or not JSON.
   Validator(this.fields, this.rules);
 
+  /// A global flag that enables or disables type safety checks during validation.
+  ///
+  /// When `true`, the [Validator] will **not throw exceptions** for data type mismatches,
+  /// but instead log them as validation errors in [getAllErrors].
+  ///
+  /// When `false`, the [Validator] will throw an [Exception] immediately upon encountering
+  /// a rule that expects a specific data type but receives an incompatible value.
+  ///
+  /// By default `Validation.enableTypeSafety = true;`
+  ///
+  /// This is useful for controlling whether your framework should crash fast (for debugging),
+  /// or fail gracefully (for production environments).
+  ///
+  /// You can override this per-validation call using the `typeSafety` parameter in [validate()].
+  ///
+  /// ### Example:
+  /// ```dart
+  /// // Disable type safety globally
+  /// Validator.enableTypeSafety = false;
+  ///
+  /// final validator = Validator(fields, rules);
+  ///
+  /// // Will throw an exception if a type mismatch is encountered
+  /// validator.validate();
+  ///
+  /// // Or enable type safety for a single validation run:
+  /// validator.validate(typeSafety: true);
+  /// ```
+  static bool enableTypeSafety = true;
+
   Map<String, dynamic> fields;
   final Map<String, ValidationRules> rules;
   final Map<String, String> _errorsMap = {};
 
-  /// Validates the request data against the provided rules.
+  /// Validates the provided [fields] against the defined [rules].
   ///
-  /// Returns `true` if all fields pass validation, otherwise `false`.
+  /// This method runs all validation checks configured via [ValidationRules]
+  /// such as required fields, data types, length, numeric range, email, URL,
+  /// date formats, nested structures, and custom validations.
   ///
-  /// Use [getAllErrors] or [getError] to retrieve the validation error(s).
+  /// Returns `true` if all fields pass validation, otherwise returns `false`.
   ///
-  /// Throws an [Exception] if a rule expects a specific data type but receives an incompatible value.
-  bool validate() {
+  /// If validation fails, the specific error messages can be retrieved using:
+  /// - [getAllErrors] for all errors as a `Map<String, String>`
+  /// - [getError] for the first error as a `MapEntry<String, String>`
+  ///
+  /// ### Type Safety
+  /// - By default, the method uses the static global flag [enableTypeSafety].
+  /// - You can override it for a specific validation call using the [typeSafety] parameter.
+  ///
+  /// When type safety is enabled (`true`), incompatible types are handled as validation errors.
+  /// When disabled (`false`), the method throws exceptions on type mismatches.
+  ///
+  /// ### Example:
+  /// ```dart
+  /// final validator = Validator({
+  ///   "email": "user@example.com",
+  ///   "age": 17,
+  /// }, {
+  ///   "email": ValidationRules(validEmail: validEmail()),
+  ///   "age": ValidationRules(minNumber: minNumber(18)),
+  /// });
+  ///
+  /// if (!validator.validate()) {
+  ///   print(validator.getAllErrors);
+  /// }
+  /// ```
+  ///
+  /// ### Override type safety for a single run:
+  /// ```dart
+  /// validator.validate(typeSafety: false); // Will throw on type errors
+  /// ```
+  bool validate({bool? typeSafety}) {
+    bool isTypeSafety = enableTypeSafety;
+
+    if (typeSafety != null) {
+      isTypeSafety = typeSafety;
+    }
+
     _errorsMap.clear();
 
     for (MapEntry<String, ValidationRules> val in rules.entries) {
@@ -134,8 +201,13 @@ class Validator {
       // Min Number Validation
       if (rule.minNumber != null) {
         if (value is! num) {
+          if (isTypeSafety) {
+            _errorsMap[field] =
+                "Invalid data type: '$field' must be a number for minimum number validation";
+            continue;
+          }
           throw Exception(
-              "Invalid data type: '$field' must be a number for minimum number validation.");
+              "Invalid data type: '$field' must be a number for minimum number validation");
         }
 
         if (value < rule.minNumber!.$1) {
@@ -148,8 +220,13 @@ class Validator {
       // Max Number Validation
       if (rule.maxNumber != null) {
         if (value is! num) {
+          if (isTypeSafety) {
+            _errorsMap[field] =
+                "Invalid data type: '$field' must be a number for maximum number validation";
+            continue;
+          }
           throw Exception(
-              "Invalid data type: '$field' must be a number for maximum number validation.");
+              "Invalid data type: '$field' must be a number for maximum number validation");
         }
 
         if (value > rule.maxNumber!.$1) {
@@ -162,8 +239,13 @@ class Validator {
       // Exact Number Validation
       if (rule.exactNumber != null) {
         if (value is! num) {
+          if (isTypeSafety) {
+            _errorsMap[field] =
+                "Invalid data type: '$field' must be a number for exact number validation";
+            continue;
+          }
           throw Exception(
-              "Invalid data type: '$field' must be a number for exact number validation.");
+              "Invalid data type: '$field' must be a number for exact number validation");
         }
 
         if (value != rule.exactNumber!.$1) {
@@ -176,8 +258,13 @@ class Validator {
       // Email Validation
       if (rule.validEmail != null) {
         if (value is! String) {
+          if (isTypeSafety) {
+            _errorsMap[field] =
+                "Invalid data type: '$field' must be a string for email validation";
+            continue;
+          }
           throw Exception(
-              "Invalid data type: '$field' must be a string for email validation.");
+              "Invalid data type: '$field' must be a string for email validation");
         }
 
         RegExp emailRegex =
@@ -191,8 +278,13 @@ class Validator {
       // URL Validation
       if (rule.validUrl != null) {
         if (value is! String) {
+          if (isTypeSafety) {
+            _errorsMap[field] =
+                "Invalid data type: '$field' must be a string for url validation";
+            continue;
+          }
           throw Exception(
-              "Invalid data type: '$field' must be a string for url validation.");
+              "Invalid data type: '$field' must be a string for url validation");
         }
 
         RegExp urlRegex = RegExp(
@@ -206,8 +298,13 @@ class Validator {
       // Valid DateTime Validation
       if (rule.validDate != null) {
         if (value is! String) {
+          if (isTypeSafety) {
+            _errorsMap[field] =
+                "Invalid data type: '$field' must be a string for datetime validation";
+            continue;
+          }
           throw Exception(
-              "Invalid data type: '$field' must be a string for datetime validation.");
+              "Invalid data type: '$field' must be a string for datetime validation");
         }
 
         if (rule.validDate!.$1 == null) {
@@ -271,8 +368,13 @@ class Validator {
       // Nested Map Validation
       if (rule.childMap != null && rule.childMap!.isNotEmpty) {
         if (value is! Map<String, dynamic>) {
+          if (isTypeSafety) {
+            _errorsMap[field] =
+                "Invalid data type: '$field' must be an object for nested map validation";
+            continue;
+          }
           throw Exception(
-              "Invalid data type: '$field' must be an object for nested map validation.");
+              "Invalid data type: '$field' must be an object for nested map validation");
         }
 
         Validator childValidator = Validator(value, rule.childMap!);
@@ -287,8 +389,13 @@ class Validator {
       // Nested List Validation
       if (rule.childList != null && rule.childList!.isNotEmpty) {
         if (value is! List<dynamic>) {
+          if (isTypeSafety) {
+            _errorsMap[field] =
+                "Invalid data type: '$field' must be a List for nested list validation";
+            continue;
+          }
           throw Exception(
-              "Invalid data type: '$field' must be a List for nested list validation.");
+              "Invalid data type: '$field' must be a List for nested list validation");
         }
 
         Map<String, dynamic> listFieldMap = {
@@ -317,8 +424,13 @@ class Validator {
       // Custom Regex Validation
       if (rule.regex != null) {
         if (value is! String) {
+          if (isTypeSafety) {
+            _errorsMap[field] =
+                "Invalid data type: '$field' must be a string for regex validation";
+            continue;
+          }
           throw Exception(
-              "Invalid data type: '$field' must be a string for regex validation.");
+              "Invalid data type: '$field' must be a string for regex validation");
         }
         RegExp customRegex = RegExp(rule.regex!.$1);
         if (!customRegex.hasMatch(value)) {
