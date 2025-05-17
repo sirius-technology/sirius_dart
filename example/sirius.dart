@@ -5,26 +5,11 @@ void main() {
 
   Validator.enableTypeSafety = false;
 
-  app.post("/", (Request request) async {
-    Validator validator = Validator(request.getJsonBody, {
-      "email": ValidationRules(required: required(), validEmail: validEmail())
-    });
+  app.wrap(TimeOutWrapper().handle);
 
-    if (!validator.validate(typeSafety: true)) {
-      return Response.sendJson(validator.getError.value);
-    }
-    return Response();
-  });
-
-  app.post("/valid", (Request request) async {
-    Validator validator = Validator(request.getJsonBody, {
-      "email": ValidationRules(required: required(), validEmail: validEmail())
-    });
-
-    if (!validator.validate()) {
-      return Response.sendJson(validator.getError.value);
-    }
-    return Response();
+  app.get("/", (request) async {
+    await Future.delayed(Duration(seconds: 5));
+    return Response.sendJson("SUCCESS");
   });
 
   app.start(
@@ -36,4 +21,17 @@ void main() {
   fileWatcher("example/sirius.dart", callback: () async {
     await app.close();
   });
+}
+
+class TimeOutWrapper extends Wrapper {
+  @override
+  Future<Response> handle(
+      Request request, Future<Response> Function() nextHandler) {
+    return nextHandler().timeout(
+      Duration(seconds: 2),
+      onTimeout: () {
+        return Response.sendJson("TIMEOUT");
+      },
+    );
+  }
 }

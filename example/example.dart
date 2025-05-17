@@ -6,10 +6,10 @@ void main() async {
   Sirius sirius = Sirius();
 
   // Global Middleware
-  sirius.useBefore(LoggerMiddleware());
+  sirius.useBefore(LoggerMiddleware().handle);
 
   // Global Wrapper-Middleware
-  sirius.wrap(TimerWrapper());
+  sirius.wrap(TimerWrapper().handle);
 
   // Simple Route
   sirius.get('/hello', (req) async {
@@ -20,7 +20,7 @@ void main() async {
   sirius.group('/user', (group) {
     group.post('/create', userController.createUser);
     group.get('/info', userController.getInfo,
-        useAfter: [ResponseTimeMiddleware()]);
+        useAfter: [ResponseTimeMiddleware().handle]);
   });
 
   // WebSocket route

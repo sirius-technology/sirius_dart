@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:sirius_backend/sirius_backend.dart';
 import 'package:sirius_backend/src/abstract_classes/sirius_exception.dart';
 import 'package:sirius_backend/src/constants.dart';
 import 'package:sirius_backend/src/handler.dart';
@@ -78,10 +77,10 @@ class Sirius {
   /// This is useful for authentication, request logging, etc.
   ///
   /// ```dart
-  /// sirius.useBefore(LoggerMiddleware());
+  /// sirius.useBefore(LoggerMiddleware().handle);
   /// ```
-  void useBefore(Middleware middleware) {
-    _beforeMiddlewareList.add(middleware.handle);
+  void useBefore(HttpHandlerFunction middleware) {
+    _beforeMiddlewareList.add(middleware);
   }
 
   /// Registers a global middleware that runs after every route handler.
@@ -89,10 +88,10 @@ class Sirius {
   /// This can be useful for logging responses, cleanup, etc.
   ///
   /// ```dart
-  /// sirius.useAfter(ResponseLogger());
+  /// sirius.useAfter(ResponseLogger().handle);
   /// ```
-  void useAfter(Middleware middleware) {
-    _afterMiddlewareList.add(middleware.handle);
+  void useAfter(HttpHandlerFunction middleware) {
+    _afterMiddlewareList.add(middleware);
   }
 
   /// Registers a global wrapper middleware that wraps the entire handler chain.
@@ -100,10 +99,10 @@ class Sirius {
   /// Wrappers act like interceptors and are ideal for timing, monitoring, etc.
   ///
   /// ```dart
-  /// sirius.wrap(TimerWrapper());
+  /// sirius.wrap(TimerWrapper().handle);
   /// ```
-  void wrap(Wrapper wrapper) {
-    _wrapperList.add(wrapper.handle);
+  void wrap(WrapperFunction wrapper) {
+    _wrapperList.add(wrapper);
   }
 
   /// Groups multiple routes under a common prefix.
@@ -145,14 +144,14 @@ class Sirius {
   /// You can also pass route-specific middleware and wrapper.
   ///
   /// ```dart
-  /// sirius.get('/users', handler, useBefore: [CheckAuth()]);
+  /// sirius.get('/users', handler, useBefore: [checkAuth()]);
   /// ```
   void get(
     String path,
     HttpHandlerFunction handler, {
-    List<Middleware> useBefore = const [],
-    List<Middleware> useAfter = const [],
-    List<Wrapper> wrap = const [],
+    List<HttpHandlerFunction> useBefore = const [],
+    List<HttpHandlerFunction> useAfter = const [],
+    List<WrapperFunction> wrap = const [],
   }) {
     path = _autoAddSlash(path);
     _addRoute(path, GET, handler, useBefore, useAfter, wrap);
@@ -162,9 +161,9 @@ class Sirius {
   void post(
     String path,
     HttpHandlerFunction handler, {
-    List<Middleware> useBefore = const [],
-    List<Middleware> useAfter = const [],
-    List<Wrapper> wrap = const [],
+    List<HttpHandlerFunction> useBefore = const [],
+    List<HttpHandlerFunction> useAfter = const [],
+    List<WrapperFunction> wrap = const [],
   }) {
     path = _autoAddSlash(path);
     _addRoute(path, POST, handler, useBefore, useAfter, wrap);
@@ -174,9 +173,9 @@ class Sirius {
   void put(
     String path,
     HttpHandlerFunction handler, {
-    List<Middleware> useBefore = const [],
-    List<Middleware> useAfter = const [],
-    List<Wrapper> wrap = const [],
+    List<HttpHandlerFunction> useBefore = const [],
+    List<HttpHandlerFunction> useAfter = const [],
+    List<WrapperFunction> wrap = const [],
   }) {
     path = _autoAddSlash(path);
     _addRoute(path, PUT, handler, useBefore, useAfter, wrap);
@@ -186,9 +185,9 @@ class Sirius {
   void patch(
     String path,
     HttpHandlerFunction handler, {
-    List<Middleware> useBefore = const [],
-    List<Middleware> useAfter = const [],
-    List<Wrapper> wrap = const [],
+    List<HttpHandlerFunction> useBefore = const [],
+    List<HttpHandlerFunction> useAfter = const [],
+    List<WrapperFunction> wrap = const [],
   }) {
     path = _autoAddSlash(path);
     _addRoute(path, PATCH, handler, useBefore, useAfter, wrap);
@@ -198,9 +197,9 @@ class Sirius {
   void delete(
     String path,
     HttpHandlerFunction handler, {
-    List<Middleware> useBefore = const [],
-    List<Middleware> useAfter = const [],
-    List<Wrapper> wrap = const [],
+    List<HttpHandlerFunction> useBefore = const [],
+    List<HttpHandlerFunction> useAfter = const [],
+    List<WrapperFunction> wrap = const [],
   }) {
     path = _autoAddSlash(path);
     _addRoute(path, DELETE, handler, useBefore, useAfter, wrap);
@@ -210,16 +209,10 @@ class Sirius {
     String path,
     String method,
     HttpHandlerFunction handler,
-    List<Middleware> beforeMiddlewares,
-    List<Middleware> afterMiddlewares,
-    List<Wrapper> wrappers,
+    List<HttpHandlerFunction> beforeRouteMiddlewareList,
+    List<HttpHandlerFunction> afterRouteMiddlewareList,
+    List<WrapperFunction> routeWrappersList,
   ) {
-    List<HttpHandlerFunction> beforeRouteMiddlewareList =
-        beforeMiddlewares.map((mw) => mw.handle).toList();
-
-    List<HttpHandlerFunction> afterRouteMiddlewareList =
-        afterMiddlewares.map((mw) => mw.handle).toList();
-
     List<HttpHandlerFunction> middlewareHandlerList = [
       ..._beforeMiddlewareList,
       ...beforeRouteMiddlewareList,
@@ -230,7 +223,7 @@ class Sirius {
 
     List<WrapperFunction> wrapperList = [
       ..._wrapperList,
-      ...wrappers.map((wr) => wr.handle)
+      ...routeWrappersList,
     ];
 
     if (_routesMap.containsKey(method)) {
