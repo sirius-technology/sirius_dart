@@ -52,7 +52,7 @@ void main() async {
       callback: (server) {
         print("Server is running");
       },
-      exceptionHandler: ApiExceptionHandler());
+      exceptionHandler: ApiExceptionHandler().handleException);
 
   // Server will restart on save
   fileWatcher("example/example.dart", callback: () async {
@@ -62,8 +62,8 @@ void main() async {
 
 class ApiExceptionHandler extends SiriusException {
   @override
-  Response handleException(Request request, Response response, int statusCode,
-      Object exception, StackTrace stackTrace) {
+  Future<Response> handleException(Request request, Response response,
+      int statusCode, Object exception, StackTrace stackTrace) async {
     return response;
   }
 }

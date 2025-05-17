@@ -17,13 +17,13 @@ import 'package:sirius_backend/sirius_backend.dart';
 /// ```dart
 /// class MyExceptionHandler extends SiriusException {
 ///   @override
-///   Response handleException(
+///   Future<Response> handleException(
 ///     Request request,
 ///     Response response,
 ///     int statusCode,
 ///     Object exception,
 ///     StackTrace stackTrace,
-///   ) {
+///   ) async{
 ///     // Log or transform the error
 ///     print('Error: $exception');
 ///     return Response.json({
@@ -54,6 +54,6 @@ abstract class SiriusException {
   /// - [stackTrace]: The full stack trace at the point of failure.
   ///
   /// Returns a [Response] to be sent back to the client.
-  Response handleException(Request request, Response response, int statusCode,
-      Object exception, StackTrace stackTrace);
+  Future<Response> handleException(Request request, Response response,
+      int statusCode, Object exception, StackTrace stackTrace);
 }

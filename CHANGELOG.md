@@ -1,3 +1,8 @@
+## 2.2.0
+- 🔄 Refactored middleware and wrapper registration to accept function references directly instead of requiring class instances
+- 🧩 `useBefore`, `useAfter`, `wrap`, and `exceptionHandler` now accept plain functions (e.g., `(request) async => Response`) to simplify usage
+- 🚀 Encourages a functional programming approach and reduces boilerplate when registering middleware or exception handlers
+
 ## 2.1.4
 - 🛡️ Added type safety toggle (`enableTypeSafety`) to the `Validator` class for safer and more predictable validation
 - ⚠️ Introduced abstract `SiriusException` class to allow custom HTTP/WebSocket exception handling

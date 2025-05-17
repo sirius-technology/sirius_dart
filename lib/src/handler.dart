@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:sirius_backend/sirius_backend.dart';
-import 'package:sirius_backend/src/abstract_classes/sirius_exception.dart';
 import 'package:sirius_backend/src/helpers/parse_stack_trace.dart';
 import 'constants.dart';
 
@@ -13,6 +12,9 @@ typedef HttpHandlerFunction = Future<Response> Function(Request request);
 typedef SocketHandlerFunction = void Function(
     Request request, SocketConnection webSocket);
 
+typedef ExceptionHandlerFunction = Future<Response> Function(Request request,
+    Response response, int statusCode, Object exception, StackTrace stackTrace);
+
 class Handler {
   final Map<String,
           Map<String, (List<WrapperFunction>, List<HttpHandlerFunction>)>>
@@ -20,14 +22,14 @@ class Handler {
 
   final Map<String, SocketHandlerFunction> _mainSocketRoutes = {};
 
-  SiriusException? _exceptionHandler;
+  ExceptionHandlerFunction? _exceptionHandler;
 
   void registerRoutes(
       Map<String,
               Map<String, (List<WrapperFunction>, List<HttpHandlerFunction>)>>
           routesMap,
       Map<String, SocketHandlerFunction> socketRoutesMap,
-      SiriusException? exceptionHandler) {
+      ExceptionHandlerFunction? exceptionHandler) {
     _mainRoutes.addAll(routesMap);
     _mainSocketRoutes.addAll(socketRoutesMap);
 
@@ -194,7 +196,7 @@ class Handler {
   }
 
   void _sendErrorResponse(Request request, int statusCode, Object exception,
-      StackTrace stackTrace) {
+      StackTrace stackTrace) async {
     List<Map<String, dynamic>>? structureTrace = parseStackTrace(stackTrace);
 
     Map<String, dynamic> errorResponseData = {
@@ -212,8 +214,8 @@ class Handler {
     );
 
     if (_exceptionHandler != null) {
-      response = _exceptionHandler!.handleException(
-          request, response, statusCode, exception, stackTrace);
+      response = await _exceptionHandler!
+          .call(request, response, statusCode, exception, stackTrace);
     }
 
     request.rawHttpRequest.response

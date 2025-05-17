@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:sirius_backend/src/abstract_classes/sirius_exception.dart';
 import 'package:sirius_backend/src/constants.dart';
 import 'package:sirius_backend/src/handler.dart';
 
@@ -270,7 +269,7 @@ class Sirius {
   Future<void> start({
     int port = 3333,
     Function(HttpServer server)? callback,
-    SiriusException? exceptionHandler,
+    ExceptionHandlerFunction? exceptionHandler,
     void Function()? onClosed,
     Function? onError,
   }) async {

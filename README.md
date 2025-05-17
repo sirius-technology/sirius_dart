@@ -21,7 +21,7 @@ It features powerful routing, composable middleware, validation, and wrapper lif
 
 ```yaml
 dependencies:
-  sirius_backend: ^2.1.4
+  sirius_backend: ^2.2.0
 ```
 
 Then run:
@@ -74,16 +74,16 @@ sirius.group('/api', (router) {
 ### Global Middleware
 
 ```dart
-sirius.useBefore(AuthMiddleware());
-sirius.useAfter(LoggerMiddleware());
+sirius.useBefore(AuthMiddleware().handle);
+sirius.useAfter(LoggerMiddleware().handle);
 ```
 
 ### Route Middleware
 
 ```dart
 sirius.get('/profile', (req) async => Response.send('Profile'),
-  useBefore: [AuthMiddleware()],
-  useAfter: [LoggerMiddleware()],
+  useBefore: [AuthMiddleware().handle],
+  useAfter: [LoggerMiddleware().handle],
 );
 ```
 
@@ -125,13 +125,13 @@ class TimerWrapper extends Wrapper {
 Register wrapper globally:
 
 ```dart
-sirius.wrap(TimerWrapper());
+sirius.wrap(TimerWrapper().handle);
 ```
 
 Or for a single route:
 
 ```dart
-sirius.get('/dashboard', controller.dashboardHandler, wrap: [TimerWrapper()]);
+sirius.get('/dashboard', controller.dashboardHandler, wrap: [TimerWrapper().handle]);
 ```
 
 ---
@@ -162,6 +162,22 @@ Incoming Request
                               └── Route Wrapper (Exit)
                                   └── Global Wrapper (Exit)
                                       └── Response Sent
+```
+
+```
+1️⃣ Incoming Request
+    ↓
+2️⃣ Global Middlewares (before)
+    ↓
+3️⃣ Route Middlewares (before)
+    ↓
+4️⃣ Route Handler (your main logic)
+    ↓
+5️⃣ Route Middlewares (after)
+    ↓
+6️⃣ Global Middlewares (after)
+    ↓
+7️⃣ Send Response
 ```
 
 ---
@@ -270,9 +286,9 @@ sirius.webSocket('/chat', (request, socketConn) {
 ```dart
 sirius.get('/secure-data',
   secureDataHandler,
-  useBefore: [AuthMiddleware()],
-  useAfter: [LoggerMiddleware()],
-  wrap: [TimerWrapper()],
+  useBefore: [AuthMiddleware().handle],
+  useAfter: [LoggerMiddleware().handle],
+  wrap: [TimerWrapper().handle],
 );
 ```
 
