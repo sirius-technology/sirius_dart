@@ -1,3 +1,6 @@
+## 2.2.1
+- 🐞 Minor bug fixes
+
 ## 2.2.0
 - 🔄 Refactored middleware and wrapper registration to accept function references directly instead of requiring class instances
 - 🧩 `useBefore`, `useAfter`, `wrap`, and `exceptionHandler` now accept plain functions (e.g., `(request) async => Response`) to simplify usage

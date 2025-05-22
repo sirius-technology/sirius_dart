@@ -21,7 +21,7 @@ It features powerful routing, composable middleware, validation, and wrapper lif
 
 ```yaml
 dependencies:
-  sirius_backend: ^2.2.0
+  sirius_backend: ^2.2.1
 ```
 
 Then run:
@@ -167,17 +167,25 @@ Incoming Request
 ```
 1️⃣ Incoming Request
     ↓
-2️⃣ Global Middlewares (before)
+2️⃣ Global Wrapper (Entry)
     ↓
-3️⃣ Route Middlewares (before)
+3️⃣ Route Wrapper (Entry)
     ↓
-4️⃣ Route Handler (your main logic)
+4️⃣ Global Middlewares (before)
     ↓
-5️⃣ Route Middlewares (after)
+5️⃣ Route Middlewares (before)
     ↓
-6️⃣ Global Middlewares (after)
+6️⃣ Route Handler (your main logic)
     ↓
-7️⃣ Send Response
+7️⃣ Route Middlewares (after)
+    ↓
+8️⃣ Global Middlewares (after)
+    ↓
+9️⃣ Route Wrapper (Exit)
+    ↓
+🔟 Global Wrapper (Exit)
+    ↓
+🟢 Response Sent
 ```
 
 ---
