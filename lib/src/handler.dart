@@ -230,34 +230,12 @@ class Handler {
       ..close();
   }
 
-  // Future<Map<String, dynamic>?> _getJsonBody(HttpRequest request) async {
-  //   try {
-  //     if (request.headers.contentType?.mimeType == "application/json") {
-  //       final content = await utf8.decoder.bind(request).join();
-  //       return jsonDecode(content);
-  //     }
-  //     // return null;
-  //   } catch (err, stackTrace) {
-  //     _sendErrorResponse(Request(request, {}, null), 500, err, stackTrace);
-  //   }
-  //   return null;
-  // }
-
   Future<Map<String, dynamic>?> _getJsonBody(HttpRequest request) async {
-    try {
-      if (request.headers.contentType?.mimeType == "application/json") {
-        final content = await utf8.decoder.bind(request).join();
-
-        if (content.trim().isEmpty) {
-          print("⚠️ Empty JSON body received");
-          return {};
-        }
-
-        return jsonDecode(content);
-      }
-    } catch (err, stackTrace) {
-      _sendErrorResponse(Request(request, {}, null), 500, err, stackTrace);
+    if (request.headers.contentType?.mimeType == "application/json") {
+      final content = await utf8.decoder.bind(request).join();
+      return jsonDecode(content);
     }
+
     return null;
   }
 
