@@ -230,10 +230,28 @@ class Handler {
       ..close();
   }
 
+  // Future<Map<String, dynamic>?> _getJsonBody(HttpRequest request) async {
+  //   if (request.headers.contentType?.mimeType == "application/json") {
+  //     final content = await utf8.decoder.bind(request).join();
+  //     return jsonDecode(content);
+  //   }
+  //   return null;
+  // }
+
   Future<Map<String, dynamic>?> _getJsonBody(HttpRequest request) async {
     if (request.headers.contentType?.mimeType == "application/json") {
       final content = await utf8.decoder.bind(request).join();
-      return jsonDecode(content);
+
+      if (content.trim().isEmpty) {
+        return null; // or throw an exception if body is required
+      }
+
+      try {
+        return jsonDecode(content);
+      } catch (e) {
+        print("JSON decode error: $e");
+        return null; // or throw FormatException("Invalid JSON");
+      }
     }
     return null;
   }

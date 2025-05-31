@@ -11,6 +11,7 @@ export 'src/helpers/file_watcher.dart';
 export 'src/validator.dart';
 export 'src/validation_rules.dart';
 export 'src/abstract_classes/wrapper.dart';
+export 'src/abstract_classes/sirius_exception.dart';
 export 'src/socket_connection.dart';
 
 // TODO: Export any libraries intended for clients of this package.

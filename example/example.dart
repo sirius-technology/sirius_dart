@@ -1,5 +1,4 @@
 import 'package:sirius_backend/sirius_backend.dart';
-import 'package:sirius_backend/src/abstract_classes/sirius_exception.dart';
 
 void main() async {
   // Creates a instance of Sirius.
