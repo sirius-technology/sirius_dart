@@ -87,7 +87,13 @@ class Handler {
     Map<String, String> pathVariables = {};
 
     if ([POST, PUT, DELETE].contains(method)) {
-      jsonBody = await _getJsonBody(request);
+      if (request.headers.contentType == ContentType.json) {
+        final content = await utf8.decoder.bind(request).join();
+
+        if (content.trim().isNotEmpty) {
+          jsonBody = jsonDecode(content);
+        }
+      }
     }
 
     if (_mainRoutes[method] == null) {
@@ -228,15 +234,6 @@ class Handler {
             : nonEncodable.toString(),
       ))
       ..close();
-  }
-
-  Future<Map<String, dynamic>?> _getJsonBody(HttpRequest request) async {
-    if (request.headers.contentType?.mimeType == "application/json") {
-      final content = await utf8.decoder.bind(request).join();
-      return jsonDecode(content);
-    }
-
-    return null;
   }
 
   Map<String, String>? _matchRoute(String route, String uri) {
