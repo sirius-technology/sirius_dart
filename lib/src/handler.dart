@@ -87,14 +87,23 @@ class Handler {
     Map<String, String> pathVariables = {};
 
     if ([POST, PUT, DELETE].contains(method)) {
-      if (request.headers.contentType?.mimeType == 'application/json') {
+      try {
+        final contentType = request.headers.contentType;
         final content = await utf8.decoder.bind(request).join();
 
-        if (content.trim().isNotEmpty) {
+        if (contentType?.mimeType == 'application/json') {
           jsonBody = jsonDecode(content);
+        } else if (contentType?.mimeType ==
+            'application/x-www-form-urlencoded') {
+          jsonBody = Uri.splitQueryString(content);
+        } else if (contentType?.mimeType == 'multipart/form-data') {
+          print("Multipart form-data coming soon...");
+        } else {
+          throw Exception("Unsupported Content-Type: ${contentType?.mimeType}");
         }
-      } else {
-        print("Invalid or missing Content-Type");
+      } catch (err, stackTrace) {
+        _sendErrorResponse(Request(request, {}, null), 500, err, stackTrace);
+        return;
       }
     }
 
