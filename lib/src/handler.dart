@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:sirius_backend/sirius_backend.dart';
+import 'package:sirius_backend/src/helpers/logging.dart';
 import 'package:sirius_backend/src/helpers/parse_stack_trace.dart';
 import 'constants.dart';
 
@@ -86,7 +87,7 @@ class Handler {
     Map<String, dynamic>? jsonBody;
     Map<String, String> pathVariables = {};
 
-    if ([POST, PUT, DELETE].contains(method)) {
+    if ([POST, PUT, PATCH, DELETE].contains(method)) {
       try {
         final contentType = request.headers.contentType;
         final content = await utf8.decoder.bind(request).join();
@@ -97,7 +98,7 @@ class Handler {
             'application/x-www-form-urlencoded') {
           jsonBody = Uri.splitQueryString(content);
         } else if (contentType?.mimeType == 'multipart/form-data') {
-          print("Multipart form-data coming soon...");
+          logWarning("Multipart form-data coming soon...");
         } else {
           throw Exception("Unsupported Content-Type: ${contentType?.mimeType}");
         }
