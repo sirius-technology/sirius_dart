@@ -84,32 +84,15 @@ class Handler {
   Future<void> _handleHttpRequest(HttpRequest request) async {
     final String uriPath = request.uri.path;
     final String method = request.method;
-    Map<String, dynamic>? jsonBody;
+    Map<String, dynamic>? body;
     Map<String, String> pathVariables = {};
 
     if ([POST, PUT, PATCH, DELETE].contains(method)) {
-      try {
-        final contentType = request.headers.contentType;
-        final content = await utf8.decoder.bind(request).join();
-
-        if (contentType?.mimeType == 'application/json') {
-          jsonBody = jsonDecode(content);
-        } else if (contentType?.mimeType ==
-            'application/x-www-form-urlencoded') {
-          jsonBody = Uri.splitQueryString(content);
-        } else if (contentType?.mimeType == 'multipart/form-data') {
-          logWarning("Multipart form-data coming soon...");
-        } else {
-          throw Exception("Unsupported Content-Type: ${contentType?.mimeType}");
-        }
-      } catch (err, stackTrace) {
-        _sendErrorResponse(Request(request, {}, null), 500, err, stackTrace);
-        return;
-      }
+      body = await _getBody(request);
     }
 
     if (_mainRoutes[method] == null) {
-      _sendErrorResponse(Request(request, {}, jsonBody), HttpStatus.notFound,
+      _sendErrorResponse(Request(request, {}, body), HttpStatus.notFound,
           Exception("Path not found"), StackTrace.current);
       return;
     }
@@ -136,7 +119,7 @@ class Handler {
 
       if (middlewareHandlerList == null) {
         _sendErrorResponse(
-            Request(request, pathVariables, jsonBody),
+            Request(request, pathVariables, body),
             HttpStatus.notFound,
             Exception("Path not found"),
             StackTrace.current);
@@ -144,7 +127,7 @@ class Handler {
       }
     }
 
-    Request newRequest = Request(request, pathVariables, jsonBody);
+    Request newRequest = Request(request, pathVariables, body);
 
     try {
       Response response;
@@ -246,6 +229,30 @@ class Handler {
             : nonEncodable.toString(),
       ))
       ..close();
+  }
+
+  Future<Map<String, dynamic>?> _getBody(HttpRequest request) async {
+    try {
+      final contentType = request.headers.contentType;
+      final content = await utf8.decoder.bind(request).join();
+
+      if (content.trim().isEmpty) {
+        return null;
+      }
+
+      if (contentType?.mimeType == 'application/json') {
+        return jsonDecode(content);
+      } else if (contentType?.mimeType == 'application/x-www-form-urlencoded') {
+        return Uri.splitQueryString(content);
+      } else if (contentType?.mimeType == 'multipart/form-data') {
+        logWarning("Multipart form-data coming soon...");
+      } else {
+        throw Exception("Unsupported Content-Type: ${contentType?.mimeType}");
+      }
+    } catch (err, stackTrace) {
+      _sendErrorResponse(Request(request, {}, null), 500, err, stackTrace);
+      return null;
+    }
   }
 
   Map<String, String>? _matchRoute(String route, String uri) {
