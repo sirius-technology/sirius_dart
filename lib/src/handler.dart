@@ -87,12 +87,14 @@ class Handler {
     Map<String, String> pathVariables = {};
 
     if ([POST, PUT, DELETE].contains(method)) {
-      if (request.headers.contentType == ContentType.json) {
+      if (request.headers.contentType?.mimeType == 'application/json') {
         final content = await utf8.decoder.bind(request).join();
 
         if (content.trim().isNotEmpty) {
           jsonBody = jsonDecode(content);
         }
+      } else {
+        print("Invalid or missing Content-Type");
       }
     }
 
