@@ -5,10 +5,10 @@ void main() {
 
   Validator.enableTypeSafety = false;
 
-  app.wrap(TimeOutWrapper().handle);
+  // app.wrap(TimeOutWrapper().handle);
 
   app.get("/", (request) async {
-    await Future.delayed(Duration(seconds: 5));
+    print(request.rawHttpRequest.headers.contentType?.mimeType);
     return Response.sendJson("SUCCESS");
   });
 

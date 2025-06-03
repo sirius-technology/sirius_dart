@@ -88,7 +88,12 @@ class Handler {
     Map<String, String> pathVariables = {};
 
     if ([POST, PUT, PATCH, DELETE].contains(method)) {
-      body = await _getBody(request);
+      try {
+        body = await _getBody(request);
+      } catch (err, stackTrace) {
+        _sendErrorResponse(Request(request, {}, null), 400, err, stackTrace);
+        return;
+      }
     }
 
     if (_mainRoutes[method] == null) {
@@ -232,27 +237,23 @@ class Handler {
   }
 
   Future<Map<String, dynamic>?> _getBody(HttpRequest request) async {
-    try {
-      final contentType = request.headers.contentType;
-      final content = await utf8.decoder.bind(request).join();
+    final contentType = request.headers.contentType;
+    final content = await utf8.decoder.bind(request).join();
 
-      if (content.trim().isEmpty) {
-        return null;
-      }
-
-      if (contentType?.mimeType == 'application/json') {
-        return jsonDecode(content);
-      } else if (contentType?.mimeType == 'application/x-www-form-urlencoded') {
-        return Uri.splitQueryString(content);
-      } else if (contentType?.mimeType == 'multipart/form-data') {
-        logWarning("Multipart form-data coming soon...");
-      } else {
-        throw Exception("Unsupported Content-Type: ${contentType?.mimeType}");
-      }
-    } catch (err, stackTrace) {
-      _sendErrorResponse(Request(request, {}, null), 500, err, stackTrace);
+    if (content.trim().isEmpty) {
       return null;
     }
+
+    if (contentType?.mimeType == 'application/json') {
+      return jsonDecode(content);
+    } else if (contentType?.mimeType == 'application/x-www-form-urlencoded') {
+      return Uri.splitQueryString(content);
+    } else if (contentType?.mimeType == 'multipart/form-data') {
+      logWarning("Multipart form-data coming soon...");
+    } else {
+      throw Exception("Unsupported Content-Type: ${contentType?.mimeType}");
+    }
+    return null;
   }
 
   Map<String, String>? _matchRoute(String route, String uri) {
