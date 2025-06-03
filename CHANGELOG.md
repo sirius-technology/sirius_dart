@@ -1,3 +1,7 @@
+## 2.2.2
+- ✅ Improved request headers and content type handling
+- 🐛 Fixed issues related to incorrect or missing Content-Type headers in certain responses
+
 ## 2.2.1
 - 🐞 Minor bug fixes
 

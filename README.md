@@ -21,7 +21,7 @@ It features powerful routing, composable middleware, validation, and wrapper lif
 
 ```yaml
 dependencies:
-  sirius_backend: ^2.2.1
+  sirius_backend: ^2.2.2
 ```
 
 Then run:
