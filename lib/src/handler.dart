@@ -87,6 +87,12 @@ class Handler {
     Map<String, dynamic>? body;
     Map<String, String> pathVariables = {};
 
+    if (_mainRoutes[method] == null) {
+      _sendErrorResponse(Request(request, {}, body), HttpStatus.notFound,
+          Exception("Path not found"), StackTrace.current);
+      return;
+    }
+
     if ([POST, PUT, PATCH, DELETE].contains(method)) {
       try {
         body = await _getBody(request);
@@ -94,12 +100,6 @@ class Handler {
         _sendErrorResponse(Request(request, {}, null), 400, err, stackTrace);
         return;
       }
-    }
-
-    if (_mainRoutes[method] == null) {
-      _sendErrorResponse(Request(request, {}, body), HttpStatus.notFound,
-          Exception("Path not found"), StackTrace.current);
-      return;
     }
 
     List<HttpHandlerFunction>? middlewareHandlerList =
@@ -237,21 +237,24 @@ class Handler {
   }
 
   Future<Map<String, dynamic>?> _getBody(HttpRequest request) async {
-    final contentType = request.headers.contentType;
-    final content = await utf8.decoder.bind(request).join();
+    final String? mimeType = request.headers.contentType?.mimeType;
+    final String content = await utf8.decoder.bind(request).join();
+
+    logSuccess(content.isEmpty.toString());
+    logSuccess(content.trim().isEmpty.toString());
 
     if (content.trim().isEmpty) {
       return null;
     }
 
-    if (contentType?.mimeType == 'application/json') {
+    if (mimeType == 'application/json') {
       return jsonDecode(content);
-    } else if (contentType?.mimeType == 'application/x-www-form-urlencoded') {
+    } else if (mimeType == 'application/x-www-form-urlencoded') {
       return Uri.splitQueryString(content);
-    } else if (contentType?.mimeType == 'multipart/form-data') {
+    } else if (mimeType == 'multipart/form-data') {
       logWarning("Multipart form-data coming soon...");
     } else {
-      throw Exception("Unsupported Content-Type: ${contentType?.mimeType}");
+      throw Exception("Unsupported Content-Type: $mimeType");
     }
     return null;
   }

@@ -7,8 +7,7 @@ void main() {
 
   // app.wrap(TimeOutWrapper().handle);
 
-  app.get("/", (request) async {
-    print(request.rawHttpRequest.headers.contentType?.mimeType);
+  app.post("/", (request) async {
     return Response.sendJson("SUCCESS");
   });
 
