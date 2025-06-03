@@ -240,9 +240,6 @@ class Handler {
     final String? mimeType = request.headers.contentType?.mimeType;
     final String content = await utf8.decoder.bind(request).join();
 
-    logSuccess(content.isEmpty.toString());
-    logSuccess(content.trim().isEmpty.toString());
-
     if (content.trim().isEmpty) {
       return null;
     }
