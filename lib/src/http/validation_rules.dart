@@ -1,5 +1,5 @@
-import 'enums/data_types.dart';
-import 'enums/date_time_formats.dart';
+import '../enums/data_types.dart';
+import '../enums/date_time_formats.dart';
 
 /// A class that holds various validation rules for input fields.
 ///

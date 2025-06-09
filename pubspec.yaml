@@ -1,5 +1,8 @@
 name: sirius_backend
-description: A powerful Dart backend framework for building scalable APIs.
+description: >
+  Sirius is a lightweight yet powerful Dart backend framework designed for building fast, scalable, and structured HTTP & WebSocket APIs. 
+  It provides clean routing, middleware support, request validation, and real-time WebSocket communication.
+
 version: 2.2.2
 homepage: https://github.com/sirius-technology/sirius_dart
 

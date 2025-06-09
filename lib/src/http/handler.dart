@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:sirius_backend/sirius_backend.dart';
 import 'package:sirius_backend/src/helpers/logging.dart';
 import 'package:sirius_backend/src/helpers/parse_stack_trace.dart';
-import 'constants.dart';
+import '../constants/constant_methods.dart';
 
 typedef WrapperFunction = Future<Response> Function(
     Request request, Future<Response> Function() nextHandler);
