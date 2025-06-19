@@ -87,7 +87,33 @@ class QueryBuilder {
     return this;
   }
 
-  ({String query, List<Object?> values}) get() {
+  ({String query, List<Object?> values}) getFirst() {
+    _limit = 1; // Always override the limit
+    final result = getAll();
+    return (query: result.query, values: result.values);
+  }
+
+  ({String query, List<Object?> values}) getLast(
+      {String orderByColumn = 'id'}) {
+    // Force order by `orderByColumn DESC` if not already defined
+    if (_orderBy == null) {
+      orderBy(orderByColumn, descending: true);
+    } else {
+      // Reverse existing order direction
+      final parts = _orderBy!.split(' ');
+      if (parts.length == 2) {
+        final col = parts[0];
+        final dir = parts[1].toUpperCase() == 'DESC' ? 'ASC' : 'DESC';
+        _orderBy = "$col $dir";
+      }
+    }
+
+    _limit = 1; // Always override the limit
+    final result = getAll();
+    return (query: result.query, values: result.values);
+  }
+
+  ({String query, List<Object?> values}) getAll() {
     final selectClause = _selects.isEmpty ? '*' : _selects.join(', ');
     String query = "SELECT $selectClause FROM $_table";
 
