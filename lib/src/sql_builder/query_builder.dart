@@ -35,6 +35,11 @@ class QueryBuilder {
     return this;
   }
 
+  QueryBuilder whereRaw(String rawCondition) {
+    _wheres.add(rawCondition);
+    return this;
+  }
+
   QueryBuilder orWhere(String column, dynamic value) {
     _orWheres.add("$column = $placeholder");
     _values.add(value);
