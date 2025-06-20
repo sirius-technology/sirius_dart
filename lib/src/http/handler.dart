@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:sirius_backend/sirius_backend.dart';
+import 'package:sirius_backend/src/helpers/formatting.dart';
 import 'package:sirius_backend/src/helpers/logging.dart';
-import 'package:sirius_backend/src/helpers/parse_stack_trace.dart';
 import '../constants/constant_methods.dart';
 
 typedef WrapperFunction = Future<Response> Function(
@@ -203,7 +203,7 @@ class Handler {
 
   void _sendErrorResponse(Request request, int statusCode, Object exception,
       StackTrace stackTrace) async {
-    List<Map<String, dynamic>>? structureTrace = parseStackTrace(stackTrace);
+    List<Map<String, dynamic>>? structureTrace = formatStackTrace(stackTrace);
 
     Map<String, dynamic> errorResponseData = {
       "status": false,

@@ -138,25 +138,49 @@ class QueryBuilder {
   ({String query, List<Object?> values}) insert(Map<String, dynamic> values) {
     if (values.isEmpty) throw Exception("No insert values provided.");
 
-    final columns = values.keys.join(', ');
-    final placeholders = List.filled(values.length, placeholder).join(', ');
-    final query = "INSERT INTO $_table ($columns) VALUES ($placeholders);";
+    final columns = <String>[];
+    final placeholders = <String>[];
+    final queryValues = <Object?>[];
 
-    return (query: query, values: values.values.toList());
+    values.forEach((key, value) {
+      columns.add(key);
+      if (value is RawSql) {
+        placeholders.add(value.toString());
+      } else {
+        placeholders.add(placeholder);
+        queryValues.add(value);
+      }
+    });
+
+    final query =
+        "INSERT INTO $_table (${columns.join(', ')}) VALUES (${placeholders.join(', ')});";
+
+    return (query: query, values: queryValues);
   }
 
   ({String query, List<Object?> values}) update(Map<String, dynamic> values) {
     if (values.isEmpty) throw Exception("No update values provided.");
 
-    final setClause =
-        values.entries.map((e) => "${e.key} = $placeholder").join(', ');
+    final setParts = <String>[];
+    final queryValues = <Object?>[];
+
+    values.forEach((key, value) {
+      if (value is RawSql) {
+        setParts.add("$key = ${value.toString()}");
+      } else {
+        setParts.add("$key = $placeholder");
+        queryValues.add(value);
+      }
+    });
+
+    final setClause = setParts.join(', ');
     final queryBase = "UPDATE $_table SET $setClause";
 
     final combinedConditions = _combineConditions();
     final whereClause =
         combinedConditions.isNotEmpty ? " WHERE $combinedConditions" : "";
 
-    final allValues = [...values.values, ..._values];
+    final allValues = [...queryValues, ..._values];
     return (query: "$queryBase$whereClause;", values: allValues);
   }
 
@@ -177,4 +201,12 @@ class QueryBuilder {
 
     return conditions.join(" AND ");
   }
+}
+
+class RawSql {
+  final String value;
+  const RawSql(this.value);
+
+  @override
+  String toString() => value;
 }

@@ -1,4 +1,4 @@
-List<Map<String, dynamic>>? parseStackTrace(StackTrace stackTrace) {
+List<Map<String, dynamic>>? formatStackTrace(StackTrace stackTrace) {
   final lines = stackTrace.toString().split('\n');
 
   return lines.where((line) => line.trim().isNotEmpty).map((line) {
