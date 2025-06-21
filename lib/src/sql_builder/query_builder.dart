@@ -29,14 +29,14 @@ class QueryBuilder {
     return this;
   }
 
-  QueryBuilder where(String column, dynamic value) {
-    _wheres.add("$column = $placeholder");
-    _values.add(value);
+  QueryBuilder whereRaw(String rawCondition) {
+    _wheres.add(rawCondition);
     return this;
   }
 
-  QueryBuilder whereRaw(String rawCondition) {
-    _wheres.add(rawCondition);
+  QueryBuilder where(String column, dynamic value) {
+    _wheres.add("$column = $placeholder");
+    _values.add(value);
     return this;
   }
 
@@ -146,6 +146,7 @@ class QueryBuilder {
       columns.add(key);
       if (value is RawSql) {
         placeholders.add(value.toString());
+        queryValues.addAll(value.bindings);
       } else {
         placeholders.add(placeholder);
         queryValues.add(value);
@@ -167,6 +168,7 @@ class QueryBuilder {
     values.forEach((key, value) {
       if (value is RawSql) {
         setParts.add("$key = ${value.toString()}");
+        queryValues.addAll(value.bindings);
       } else {
         setParts.add("$key = $placeholder");
         queryValues.add(value);
@@ -205,7 +207,9 @@ class QueryBuilder {
 
 class RawSql {
   final String value;
-  const RawSql(this.value);
+  final List<Object?> bindings;
+
+  const RawSql(this.value, [this.bindings = const []]);
 
   @override
   String toString() => value;
