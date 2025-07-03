@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:sirius_backend/sirius_backend.dart';
 import 'package:sirius_backend/src/helpers/formatting.dart';
+import 'package:sirius_backend/src/helpers/logging.dart';
 import '../constants/constant_methods.dart';
 
 typedef WrapperFunction = Future<Response> Function(
@@ -415,7 +416,9 @@ class Handler {
       if (file.existsSync()) {
         try {
           file.deleteSync();
-        } catch (_) {}
+        } catch (err) {
+          logError(err.toString());
+        }
       }
     }
   }

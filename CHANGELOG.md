@@ -1,3 +1,10 @@
+## 2.3.0
+- 🆕 Multipart Form Data Support
+  Added full support for parsing multipart/form-data requests, including:
+  - 📎 File uploads: parse and extract file metadata (name, size, raw bytes)
+  - 📝 Text fields: seamlessly handle combined form inputs and files
+  - 💾 Deferred file saving via `getFile()`, storing files on-demand to a temp directory
+
 ## 2.2.2
 - ✅ Improved request headers and content type handling
 - 🐛 Fixed issues related to incorrect or missing Content-Type headers in certain requests

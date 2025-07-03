@@ -5,18 +5,25 @@ void main() {
   Sirius app = Sirius();
 
   app.post("add", (Request request) async {
-    Future.delayed((Duration(seconds: 2))).then((onfs) {
-      File? f = request.getFile("image");
-      print(f);
-    });
-    return Response.sendJson(request.getAllFields);
+    File file = request.getFile("image")!;
+
+    final uploadDir = Directory('uploads');
+    if (!uploadDir.existsSync()) {
+      uploadDir.createSync(recursive: true);
+    }
+
+    final newPath = 'uploads/image.png';
+
+    final newFile = await file.rename(newPath);
+
+    return Response.sendJson(newFile.path);
   });
 
   app.start(callback: (HttpServer server) {
     print("Server is running");
   });
 
-  fileWatcher("example/sirius.dart", callback: () {
-    app.close();
-  });
+  // fileWatcher("example/sirius.dart", callback: () {
+  //   app.close();
+  // });
 }

@@ -24,3 +24,5 @@ export 'src/sql_builder/query_builder.dart';
 // Exception shown in production and error logs creation
 
 // validate files also and set files in getAllFields
+
+// need documentation comments in SqlBuilder class

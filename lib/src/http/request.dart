@@ -20,6 +20,7 @@ class Request {
   final Map<String, String> _pathVariables;
   final (Map<String, dynamic>, Map<String, dynamic>)? _body;
   final Map<String, String> _headers = {};
+  List<String>? tempFilePathList;
 
   dynamic _passedData;
 
@@ -135,7 +136,44 @@ class Request {
     return tempFile;
   }
 
-  List<String>? tempFilePathList;
+  /// Returns the metadata of an uploaded file for the given [key] as a `Map<String, dynamic>`.
+  ///
+  /// This includes:
+  /// - `fileName`: The original name of the uploaded file.
+  /// - `size`: The size of the file in bytes.
+  /// - `content`: The raw bytes of the file (as `List<int>`).
+  /// - `tempFilePath`: Path to the temp file if it has been saved (optional).
+  ///
+  /// Returns `null` if no file exists for the provided key.
+  ///
+  /// ### Example
+  /// ```dart
+  /// final fileData = request.getFileData('avatar');
+  /// if (fileData != null) {
+  ///   print('Filename: ${fileData['fileName']}');
+  ///   print('Size: ${fileData['size']} bytes');
+  /// }
+  /// ```
+  Map<String, dynamic>? getFileData(String key) => _body?.$2[key];
+
+  /// Returns metadata for all uploaded files as a `Map<String, dynamic>`.
+  ///
+  /// The returned map contains one entry per file field, where each value is a
+  /// map with the following structure:
+  /// - `fileName`: The original name of the uploaded file.
+  /// - `size`: The file size in bytes.
+  /// - `content`: The file content as raw bytes (`List<int>`).
+  /// - `tempFilePath`: Path to the temp file if saved via `getFile()` (optional).
+  ///
+  /// ### Example
+  /// ```dart
+  /// final files = request.getAllFileData();
+  /// files?.forEach((key, fileData) {
+  ///   print('Field: $key');
+  ///   print('Filename: ${fileData['fileName']}');
+  /// });
+  /// ```
+  Map<String, dynamic>? getAllFileData() => _body?.$2;
 
   void _trackTempFile(String path) {
     if (tempFilePathList == null) {
