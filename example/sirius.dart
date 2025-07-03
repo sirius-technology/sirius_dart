@@ -1,10 +1,22 @@
+import 'dart:io';
 import 'package:sirius_backend/sirius_backend.dart';
 
 void main() {
-  var r = QueryBuilder("users").where("column1", "value1").update({
-    "location": RawSql("ST_GeomFromText('POINT(? ?)')", [21.342342, 81.242424])
+  Sirius app = Sirius();
+
+  app.post("add", (Request request) async {
+    Future.delayed((Duration(seconds: 2))).then((onfs) {
+      File? f = request.getFile("image");
+      print(f);
+    });
+    return Response.sendJson(request.getAllFields);
   });
 
-  print("QUERY -->> ${r.query}");
-  print("VALUES -->> ${r.values}");
+  app.start(callback: (HttpServer server) {
+    print("Server is running");
+  });
+
+  fileWatcher("example/sirius.dart", callback: () {
+    app.close();
+  });
 }

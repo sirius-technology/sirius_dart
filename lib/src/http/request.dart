@@ -18,7 +18,7 @@ import 'dart:io';
 class Request {
   final HttpRequest _request;
   final Map<String, String> _pathVariables;
-  final Map<String, dynamic>? _body;
+  final (Map<String, dynamic>, Map<String, dynamic>)? _body;
   final Map<String, String> _headers = {};
 
   dynamic _passedData;
@@ -68,15 +68,6 @@ class Request {
   /// ```
   String? queryParam(String key) => allQueryParams[key];
 
-  /// Returns the parsed JSON body as a `Map<String, dynamic>?`.
-  ///
-  /// ### Example
-  /// ```dart
-  /// final body = request.jsonBody;
-  /// print(body?['name']);
-  /// ```
-  Map<String, dynamic>? get jsonBody => _body;
-
   /// Returns the parsed JSON body as a non-nullable `Map<String, dynamic>`.
   ///
   /// If the body is `null`, returns an empty map instead.
@@ -85,18 +76,75 @@ class Request {
   ///
   /// ### Example
   /// ```dart
-  /// final data = request.getJsonBody;
+  /// final data = request.getBody;
   /// final name = data['name'];
   /// ```
-  Map<String, dynamic> get getJsonBody => _body ?? {};
+  Map<String, dynamic>? get getBody => _body?.$1;
 
   /// Returns the value from the JSON body for a given [key].
   ///
   /// ### Example
   /// ```dart
-  /// final email = request.jsonValue('email');
+  /// final email = request.getValue('email');
   /// ```
-  dynamic jsonValue(String key) => _body?[key];
+  dynamic getValue(String key) => _body?.$1[key];
+
+  /// Returns the uploaded file as a [File] object for the given [key].
+  ///
+  /// If the file hasn't been saved to disk yet, it is saved to a temporary
+  /// directory and then returned.
+  ///
+  /// Example:
+  /// ```dart
+  /// final File? file = request.getFile('profile');
+  /// if (file != null) {
+  ///   print('Temp path: ${file.path}');
+  /// }
+  /// ```
+  File? getFile(String key) {
+    final fileMeta = _body?.$2[key];
+    if (fileMeta == null) return null;
+
+    // Already saved to temp?
+    if (fileMeta['tempFilePath'] != null) {
+      return File(fileMeta['tempFilePath']);
+    }
+
+    final content = fileMeta['content'] as List<int>?;
+    final filename = fileMeta['fileName'] as String?;
+
+    if (content == null || filename == null) return null;
+
+    // Ensure temp directory exists
+    final tempDir = Directory('temp');
+    if (!tempDir.existsSync()) {
+      tempDir.createSync(recursive: true);
+    }
+
+    final safeName = filename.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    final tempPath = 'temp/$safeName';
+
+    final tempFile = File(tempPath);
+    tempFile.writeAsBytesSync(content);
+
+    // Store path back to map for future access
+    fileMeta['tempFilePath'] = tempPath;
+
+    _trackTempFile(tempPath);
+
+    return tempFile;
+  }
+
+  List<String>? tempFilePathList;
+
+  void _trackTempFile(String path) {
+    if (tempFilePathList == null) {
+      tempFilePathList = [];
+      tempFilePathList!.add(path);
+    } else {
+      tempFilePathList!.add(path);
+    }
+  }
 
   /// Returns all headers in a lowercase map format.
   ///
@@ -184,6 +232,6 @@ class Request {
   Map<String, dynamic> get getAllFields => {
         ..._pathVariables, // lowest priority
         ...allQueryParams,
-        ...(jsonBody ?? {}), // highest priority
+        ...(_body?.$1 ?? {}), // highest priority
       };
 }

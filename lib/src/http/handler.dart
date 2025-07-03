@@ -1,8 +1,7 @@
-import 'dart:convert';
 import 'dart:io';
+import 'dart:convert';
 import 'package:sirius_backend/sirius_backend.dart';
 import 'package:sirius_backend/src/helpers/formatting.dart';
-import 'package:sirius_backend/src/helpers/logging.dart';
 import '../constants/constant_methods.dart';
 
 typedef WrapperFunction = Future<Response> Function(
@@ -63,7 +62,8 @@ class Handler {
 
       if (handler == null) {
         _sendErrorResponse(
-            Request(request, pathVariables, null),
+            Request(request, pathVariables,
+                (<String, dynamic>{}, <String, File>{})),
             HttpStatus.notFound,
             Exception("Path not found"),
             StackTrace.current);
@@ -71,7 +71,8 @@ class Handler {
       }
     }
 
-    Request webSocketRequest = Request(request, pathVariables, null);
+    Request webSocketRequest = Request(
+        request, pathVariables, (<String, dynamic>{}, <String, File>{}));
 
     WebSocketTransformer.upgrade(request).then((WebSocket webSocket) async {
       handler!(webSocketRequest, SocketConnection(webSocket));
@@ -84,11 +85,11 @@ class Handler {
   Future<void> _handleHttpRequest(HttpRequest request) async {
     final String uriPath = request.uri.path;
     final String method = request.method;
-    Map<String, dynamic>? body;
+    (Map<String, dynamic>, Map<String, dynamic>)? body;
     Map<String, String> pathVariables = {};
 
     if (_mainRoutes[method] == null) {
-      _sendErrorResponse(Request(request, {}, body), HttpStatus.notFound,
+      _sendErrorResponse(Request(request, {}, null), HttpStatus.notFound,
           Exception("Path not found"), StackTrace.current);
       return;
     }
@@ -153,7 +154,7 @@ class Handler {
             newRequest, middlewareHandlerList);
       }
 
-      _sendSuccessResponse(request, response);
+      _sendSuccessResponse(newRequest, response);
     } catch (err, stackTrace) {
       _sendErrorResponse(
           newRequest, HttpStatus.internalServerError, err, stackTrace);
@@ -181,16 +182,18 @@ class Handler {
         "No response sent by handler. not getting response in handler");
   }
 
-  void _sendSuccessResponse(HttpRequest request, Response response) {
+  void _sendSuccessResponse(Request request, Response response) {
+    HttpRequest rawRequest = request.rawHttpRequest;
+
     if (response.overrideHeaders != null) {
-      response.overrideHeaders!(request.response.headers);
+      response.overrideHeaders!(rawRequest.response.headers);
     } else {
       response.headers.forEach((key, value) {
-        request.response.headers.set(key, value);
+        rawRequest.response.headers.set(key, value);
       });
     }
 
-    request.response
+    rawRequest.response
       ..statusCode = response.statusCode
       ..write(jsonEncode(
         response.data,
@@ -199,6 +202,8 @@ class Handler {
             : nonEncodable.toString(),
       ))
       ..close();
+
+    _cleanupTempFiles(request);
   }
 
   void _sendErrorResponse(Request request, int statusCode, Object exception,
@@ -234,26 +239,151 @@ class Handler {
             : nonEncodable.toString(),
       ))
       ..close();
+
+    _cleanupTempFiles(request);
   }
 
-  Future<Map<String, dynamic>?> _getBody(HttpRequest request) async {
-    final String? mimeType = request.headers.contentType?.mimeType;
-    final String content = await utf8.decoder.bind(request).join();
+  Future<(Map<String, dynamic>, Map<String, dynamic>)?> _getBody(
+      HttpRequest request) async {
+    final contentType = request.headers.contentType;
+    final mimeType = contentType?.mimeType;
 
-    if (content.trim().isEmpty) {
+    if (mimeType == null) {
       return null;
     }
 
     if (mimeType == 'application/json') {
+      final content = await utf8.decoder.bind(request).join();
+      if (content.trim().isEmpty) {
+        return (<String, dynamic>{}, <String, dynamic>{});
+      }
+
       return jsonDecode(content);
-    } else if (mimeType == 'application/x-www-form-urlencoded') {
-      return Uri.splitQueryString(content);
-    } else if (mimeType == 'multipart/form-data') {
-      logWarning("Multipart form-data coming soon...");
-    } else {
-      throw Exception("Unsupported Content-Type: $mimeType");
     }
-    return null;
+
+    if (mimeType == 'application/x-www-form-urlencoded') {
+      final content = await utf8.decoder.bind(request).join();
+      if (content.trim().isEmpty) {
+        return (<String, dynamic>{}, <String, dynamic>{});
+      }
+      ;
+      return (Uri.splitQueryString(content), <String, dynamic>{});
+    }
+
+    if (mimeType == 'text/plain') {
+      final content = await utf8.decoder.bind(request).join();
+      if (content.trim().isEmpty) {
+        return (<String, dynamic>{}, <String, dynamic>{});
+      }
+      ;
+      return ({'text': content}, <String, dynamic>{});
+    }
+
+    if (mimeType == 'multipart/form-data') {
+      return parseMultipartFormData(request);
+    }
+
+    throw Exception("Unsupported Content-Type: $mimeType");
+  }
+
+  Future<(Map<String, dynamic>, Map<String, dynamic>)> parseMultipartFormData(
+      HttpRequest request) async {
+    final contentType = request.headers.contentType;
+    final boundary = contentType?.parameters['boundary'];
+
+    if (boundary == null) {
+      throw Exception('Missing boundary');
+    }
+
+    final delimiter = utf8.encode('--$boundary');
+    final bodyBytes = await request.fold<List<int>>([], (b, d) => b..addAll(d));
+
+    final int length = bodyBytes.length;
+    int start = 0;
+
+    final fields = <String, dynamic>{};
+    final files = <String, dynamic>{};
+
+    while (start < length) {
+      final boundaryIndex = _indexOf(bodyBytes, delimiter, start);
+      if (boundaryIndex == -1) break;
+
+      start = boundaryIndex + delimiter.length;
+
+      // End of body
+      if (start < length &&
+          bodyBytes[start] == 45 &&
+          bodyBytes[start + 1] == 45) {
+        break;
+      }
+
+      // Skip CRLF
+      if (bodyBytes[start] == 13 && bodyBytes[start + 1] == 10) {
+        start += 2;
+      }
+
+      final nextBoundaryIndex = _indexOf(bodyBytes, delimiter, start);
+      final partEnd = nextBoundaryIndex != -1 ? nextBoundaryIndex - 2 : length;
+
+      final partBytes = bodyBytes.sublist(start, partEnd);
+
+      final headerEnd = _indexOf(partBytes, utf8.encode('\r\n\r\n'), 0);
+      if (headerEnd == -1) continue;
+
+      final headersRaw = utf8.decode(partBytes.sublist(0, headerEnd));
+      final content = partBytes.sublist(headerEnd + 4);
+
+      final headers = <String, String>{};
+      for (var line in headersRaw.split('\r\n')) {
+        final index = line.indexOf(':');
+        if (index == -1) continue;
+        final key = line.substring(0, index).trim().toLowerCase();
+        final value = line.substring(index + 1).trim();
+        headers[key] = value;
+      }
+
+      final disposition = headers['content-disposition'];
+      if (disposition == null) continue;
+
+      final nameMatch = RegExp(r'name="([^"]+)"').firstMatch(disposition);
+      if (nameMatch == null) continue;
+
+      final name = nameMatch.group(1)!;
+      final filenameMatch =
+          RegExp(r'filename="([^"]+)"').firstMatch(disposition);
+
+      if (filenameMatch != null) {
+        final filename = filenameMatch.group(1)!;
+
+        // Store file metadata only (no saving)
+        files[name] = {
+          'fileName': filename,
+          'size': content.length,
+          'content': content, // raw bytes
+        };
+      } else {
+        final value = utf8.decode(content);
+        fields[name] = value;
+      }
+
+      start = partEnd + 2;
+    }
+
+    return (fields, files);
+  }
+
+  int _indexOf(List<int> data, List<int> pattern, int start) {
+    for (int i = start; i <= data.length - pattern.length; i++) {
+      bool found = true;
+      for (int j = 0; j < pattern.length; j++) {
+        if (data[i + j] != pattern[j]) {
+          found = false;
+          break;
+        }
+      }
+      if (found) return i;
+    }
+    return -1;
   }
 
   Map<String, String>? _matchRoute(String route, String uri) {
@@ -274,5 +404,19 @@ class Handler {
       }
     }
     return pathVar;
+  }
+
+  void _cleanupTempFiles(Request request) {
+    if (request.tempFilePathList == null) {
+      return;
+    }
+    for (final path in request.tempFilePathList!) {
+      final file = File(path);
+      if (file.existsSync()) {
+        try {
+          file.deleteSync();
+        } catch (_) {}
+      }
+    }
   }
 }

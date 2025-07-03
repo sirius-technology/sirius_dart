@@ -273,6 +273,7 @@ class Sirius {
     void Function()? onClosed,
     Function? onError,
   }) async {
+    _removeTempFolder();
     _handler.registerRoutes(_routesMap, _socketRoutesMap, exceptionHandler);
     _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
 
@@ -300,4 +301,12 @@ class Sirius {
 
   /// Access the raw [HttpServer] instance.
   HttpServer? get rawHttpServer => _server;
+
+  Future<void> _removeTempFolder() async {
+    final tempDir = Directory('temp');
+
+    if (await tempDir.exists()) {
+      await tempDir.delete(recursive: true);
+    }
+  }
 }
