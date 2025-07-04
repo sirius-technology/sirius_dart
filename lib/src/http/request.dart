@@ -80,7 +80,7 @@ class Request {
   /// final data = request.getBody;
   /// final name = data['name'];
   /// ```
-  Map<String, dynamic>? get getBody => _body?.$1;
+  Map<String, dynamic> get getBody => _body?.$1 ?? const {};
 
   /// Returns the value from the JSON body for a given [key].
   ///
