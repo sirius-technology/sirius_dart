@@ -259,7 +259,7 @@ class Handler {
         return (<String, dynamic>{}, <String, dynamic>{});
       }
 
-      return jsonDecode(content);
+      return (jsonDecode(content) as Map<String, dynamic>, <String, dynamic>{});
     }
 
     if (mimeType == 'application/x-www-form-urlencoded') {
@@ -276,7 +276,7 @@ class Handler {
       if (content.trim().isEmpty) {
         return (<String, dynamic>{}, <String, dynamic>{});
       }
-      ;
+
       return ({'text': content}, <String, dynamic>{});
     }
 
