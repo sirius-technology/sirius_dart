@@ -204,6 +204,30 @@ class Sirius {
     _addRoute(path, DELETE, handler, useBefore, useAfter, wrap);
   }
 
+  /// Registers a head route.
+  void head(
+    String path,
+    HttpHandlerFunction handler, {
+    List<HttpHandlerFunction> useBefore = const [],
+    List<HttpHandlerFunction> useAfter = const [],
+    List<WrapperFunction> wrap = const [],
+  }) {
+    path = _autoAddSlash(path);
+    _addRoute(path, HEAD, handler, useBefore, useAfter, wrap);
+  }
+
+  /// Registers a options route.
+  void options(
+    String path,
+    HttpHandlerFunction handler, {
+    List<HttpHandlerFunction> useBefore = const [],
+    List<HttpHandlerFunction> useAfter = const [],
+    List<WrapperFunction> wrap = const [],
+  }) {
+    path = _autoAddSlash(path);
+    _addRoute(path, OPTIONS, handler, useBefore, useAfter, wrap);
+  }
+
   void _addRoute(
     String path,
     String method,

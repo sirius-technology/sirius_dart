@@ -267,7 +267,7 @@ class Handler {
       if (content.trim().isEmpty) {
         return (<String, dynamic>{}, <String, dynamic>{});
       }
-      ;
+
       return (Uri.splitQueryString(content), <String, dynamic>{});
     }
 

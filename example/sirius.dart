@@ -4,26 +4,22 @@ import 'package:sirius_backend/sirius_backend.dart';
 void main() {
   Sirius app = Sirius();
 
-  app.post("add", (Request request) async {
-    File file = request.getFile("image")!;
+  app.get('get', (req) async {
+    return Response.send(null);
+  });
 
-    final uploadDir = Directory('uploads');
-    if (!uploadDir.existsSync()) {
-      uploadDir.createSync(recursive: true);
-    }
+  app.head('head', (req) async {
+    Response res = Response();
+    // res.headers = req.headers;
+    res.statusCode = 200;
+    return res;
+  });
 
-    final newPath = 'uploads/image.png';
-
-    final newFile = await file.rename(newPath);
-
-    return Response.sendJson(newFile.path);
+  app.options('options', (req) async {
+    return Response.send('');
   });
 
   app.start(callback: (HttpServer server) {
     print("Server is running");
   });
-
-  // fileWatcher("example/sirius.dart", callback: () {
-  //   app.close();
-  // });
 }

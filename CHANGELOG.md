@@ -1,3 +1,8 @@
+## 2.3.3
+- ⚙️ Improved compliance with HTTP `HEAD` method by ensuring responses include headers only and no body
+- 🔍 Enhanced header handling logic to support custom and client-provided headers more cleanly
+- 🧪 Added better testing support for `HEAD`, `OPTIONS`, and other non-GET methods
+
 ## 2.3.2
 - 🐞 Fixed minor errors and bugs
 
