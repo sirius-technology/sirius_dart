@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:sirius_backend/sirius_backend.dart';
 
 void main() {
@@ -11,7 +9,7 @@ void main() {
     return Response.send('Apis is working');
   });
 
-  app.start(callback: (HttpServer server) {
+  app.start(callback: (server) {
     print("Server is running");
   });
 }

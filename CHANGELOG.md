@@ -1,3 +1,7 @@
+## 2.3.4
+- 🌐 Added built-in `corsHandler` middleware to simplify CORS handling across projects
+- 🛠️ Developers can now easily enable CORS using `.wrap(corsHandler())` with customizable options
+
 ## 2.3.3
 - ⚙️ Improved compliance with HTTP `HEAD` method by ensuring responses include headers only and no body
 - 🔍 Enhanced header handling logic to support custom and client-provided headers more cleanly
