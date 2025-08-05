@@ -13,9 +13,13 @@ export 'src/http/validation_rules.dart';
 export 'src/abstract_classes/wrapper.dart';
 export 'src/abstract_classes/sirius_exception.dart';
 export 'src/http/socket_connection.dart';
+
 export 'src/sql_builder/query_builder.dart';
 
+export 'inbuilds/cors_handler.dart';
+
 // TODO: Export any libraries intended for clients of this package.
+
 
 // apply middleware in only selected methods
 
@@ -26,3 +30,5 @@ export 'src/sql_builder/query_builder.dart';
 // validate files also and set files in getAllFields
 
 // need documentation comments in SqlBuilder class
+
+
