@@ -10,7 +10,6 @@ void main() {
   });
 
   app.get('get', (req) async {
-    ;
     return Response.sendJson(req);
   });
 
