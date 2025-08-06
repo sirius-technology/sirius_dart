@@ -20,7 +20,7 @@ import 'dart:io';
 /// );
 /// ```
 class Response {
-  /// The response body data. Can be any type (usually a Map or String).
+  /// The response body data. Typically a `Map`, `List`, `String`, or `null`.
   dynamic data;
 
   /// The HTTP status code of the response.
@@ -29,34 +29,58 @@ class Response {
 
   /// Custom headers to include in the HTTP response.
   ///
-  /// Developers can pass additional metadata such as:
-  /// `"Content-Type": "application/json"`.
+  /// This allows developers to specify metadata such as:
+  /// - `"Content-Type": "application/json"`
+  /// - `"X-Powered-By": "Sirius"`
+  ///
+  /// Example:
+  /// ```dart
+  /// {
+  ///   "Content-Type": "application/json",
+  ///   "Cache-Control": "no-cache"
+  /// }
+  /// ```
   Map<String, dynamic> headers = {};
 
-  /// A callback to override default headers using [HttpHeaders].
+  /// Internal data store for passing contextual metadata through the response.
   ///
-  /// Useful for setting advanced headers (e.g., CORS, cookies, custom control).
+  /// This is useful for passing additional data between middleware layers or handlers,
+  /// without sending it in the actual HTTP response body.
+  dynamic _contextData;
+
+  /// Retrieves the internal context data passed during processing.
+  dynamic get getContextData => _contextData;
+
+  /// Sets extra internal context data to this response.
+  ///
+  /// Example:
+  /// ```dart
+  /// response.setContextData = {'user': currentUser};
+  /// ```
+  set setContextData(dynamic data) {
+    _contextData = data;
+  }
+
+  /// A callback to override or manipulate low-level response headers.
+  ///
+  /// This provides access to the raw [HttpHeaders] object for setting advanced options
+  /// such as CORS headers, cookies, security flags, etc.
   ///
   /// ### Example:
   /// ```dart
   /// overrideHeaders: (headers) {
   ///   headers.set('Access-Control-Allow-Origin', '*');
+  ///   headers.set('Set-Cookie', 'session=abc123; HttpOnly');
   /// }
   /// ```
   void Function(HttpHeaders headers)? overrideHeaders;
 
-  /// Indicates whether this response should proceed to the next handler or middleware.
+  /// Constructs a [Response] instance.
   ///
-  /// If `true`, the framework continues processing with the next layer.
-  bool isNext = false;
-
-  /// Used to pass data from middleware to downstream handlers or controllers.
-  ///
-  /// Access this via `request.receiveData`.
-  dynamic passedData;
-
-  /// Constructs a [Response] instance with optional data, statusCode, headers,
-  /// override logic, continuation flag, and passed data.
+  /// - [data]: response body
+  /// - [statusCode]: HTTP status code (default is 200 OK)
+  /// - [headers]: additional response headers
+  /// - [overrideHeaders]: callback for raw header manipulation
   ///
   /// ### Example:
   /// ```dart
@@ -71,8 +95,6 @@ class Response {
     this.statusCode = HttpStatus.ok,
     this.headers = const {},
     this.overrideHeaders,
-    this.isNext = false,
-    this.passedData,
   ]);
 
   /// Creates a standard response with optional status code and headers.
@@ -144,24 +166,5 @@ class Response {
   /// ```
   void addHeader(String key, String value) {
     headers[key] = value;
-  }
-
-  /// Signals the framework to continue request handling to the next handler.
-  ///
-  /// Mostly used in middleware chains when a request passes validation or authentication.
-  ///
-  /// You can optionally pass context using [passData], which can be retrieved
-  /// in the next handler or controller via `request.receiveData`.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// if (isAuthenticated) {
-  ///   return Response.next(passData: {"userId": 123});
-  /// }
-  ///
-  /// return Response.send({"error": "Unauthorized"}, statusCode: HttpStatus.unauthorized);
-  /// ```
-  static Response next({dynamic passData}) {
-    return Response(null, HttpStatus.ok, {}, null, true, passData);
   }
 }

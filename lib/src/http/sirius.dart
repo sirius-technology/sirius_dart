@@ -48,17 +48,12 @@ class Sirius {
   /// ```
   Sirius();
 
-  final Map<String,
-          Map<String, (List<WrapperFunction>, List<HttpHandlerFunction>)>>
+  final Map<String, Map<String, (List<WrapperFunction>, HttpHandlerFunction)>>
       _routesMap = {};
 
   final List<WrapperFunction> _wrapperList = [];
 
   final Map<String, SocketHandlerFunction> _socketRoutesMap = {};
-
-  final List<HttpHandlerFunction> _beforeMiddlewareList = [];
-
-  final List<HttpHandlerFunction> _afterMiddlewareList = [];
 
   final Handler _handler = Handler();
 
@@ -69,28 +64,6 @@ class Sirius {
       return path;
     }
     return "/$path";
-  }
-
-  /// Registers a global middleware that runs before every route handler.
-  ///
-  /// This is useful for authentication, request logging, etc.
-  ///
-  /// ```dart
-  /// sirius.useBefore(LoggerMiddleware().handle);
-  /// ```
-  void useBefore(HttpHandlerFunction middleware) {
-    _beforeMiddlewareList.add(middleware);
-  }
-
-  /// Registers a global middleware that runs after every route handler.
-  ///
-  /// This can be useful for logging responses, cleanup, etc.
-  ///
-  /// ```dart
-  /// sirius.useAfter(ResponseLogger().handle);
-  /// ```
-  void useAfter(HttpHandlerFunction middleware) {
-    _afterMiddlewareList.add(middleware);
   }
 
   /// Registers a global wrapper middleware that wraps the entire handler chain.
@@ -119,8 +92,6 @@ class Sirius {
 
     Sirius siriusGroup = Sirius();
 
-    siriusGroup._beforeMiddlewareList.addAll(_beforeMiddlewareList);
-    siriusGroup._afterMiddlewareList.addAll(_afterMiddlewareList);
     siriusGroup._wrapperList.addAll(_wrapperList);
 
     callback(siriusGroup);
@@ -138,112 +109,94 @@ class Sirius {
     });
   }
 
-  /// Registers a GET route.
+  /// Registers a GET route in the Sirius application.
   ///
-  /// You can also pass route-specific middleware and wrapper.
+  /// Optionally, you can pass route-specific wrappers (middleware) using the [wrappers] parameter.
   ///
+  /// Example:
   /// ```dart
-  /// sirius.get('/users', handler, useBefore: [checkAuth()]);
+  /// sirius.get('/users', handler, wrappers: [checkAuth()]);
   /// ```
+  ///
+  /// Parameters:
+  /// - [path]     → The route path (e.g. `/users`)
+  /// - [handler]  → The function that handles the request
+  /// - [wrappers] → Optional list of wrapper functions (middleware) applied only to this route
   void get(
     String path,
     HttpHandlerFunction handler, {
-    List<HttpHandlerFunction> useBefore = const [],
-    List<HttpHandlerFunction> useAfter = const [],
-    List<WrapperFunction> wrap = const [],
+    List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, GET, handler, useBefore, useAfter, wrap);
+    _addRoute(path, GET, handler, wrappers);
   }
 
   /// Registers a POST route.
   void post(
     String path,
     HttpHandlerFunction handler, {
-    List<HttpHandlerFunction> useBefore = const [],
-    List<HttpHandlerFunction> useAfter = const [],
-    List<WrapperFunction> wrap = const [],
+    List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, POST, handler, useBefore, useAfter, wrap);
+    _addRoute(path, POST, handler, wrappers);
   }
 
   /// Registers a PUT route.
   void put(
     String path,
     HttpHandlerFunction handler, {
-    List<HttpHandlerFunction> useBefore = const [],
-    List<HttpHandlerFunction> useAfter = const [],
-    List<WrapperFunction> wrap = const [],
+    List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, PUT, handler, useBefore, useAfter, wrap);
+    _addRoute(path, PUT, handler, wrappers);
   }
 
   /// Registers a PATCH route.
   void patch(
     String path,
     HttpHandlerFunction handler, {
-    List<HttpHandlerFunction> useBefore = const [],
-    List<HttpHandlerFunction> useAfter = const [],
-    List<WrapperFunction> wrap = const [],
+    List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, PATCH, handler, useBefore, useAfter, wrap);
+    _addRoute(path, PATCH, handler, wrappers);
   }
 
   /// Registers a DELETE route.
   void delete(
     String path,
     HttpHandlerFunction handler, {
-    List<HttpHandlerFunction> useBefore = const [],
-    List<HttpHandlerFunction> useAfter = const [],
-    List<WrapperFunction> wrap = const [],
+    List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, DELETE, handler, useBefore, useAfter, wrap);
+    _addRoute(path, DELETE, handler, wrappers);
   }
 
   /// Registers a head route.
   void head(
     String path,
     HttpHandlerFunction handler, {
-    List<HttpHandlerFunction> useBefore = const [],
-    List<HttpHandlerFunction> useAfter = const [],
-    List<WrapperFunction> wrap = const [],
+    List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, HEAD, handler, useBefore, useAfter, wrap);
+    _addRoute(path, HEAD, handler, wrappers);
   }
 
   /// Registers a options route.
   void options(
     String path,
     HttpHandlerFunction handler, {
-    List<HttpHandlerFunction> useBefore = const [],
-    List<HttpHandlerFunction> useAfter = const [],
-    List<WrapperFunction> wrap = const [],
+    List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
-    _addRoute(path, OPTIONS, handler, useBefore, useAfter, wrap);
+    _addRoute(path, OPTIONS, handler, wrappers);
   }
 
   void _addRoute(
     String path,
     String method,
-    HttpHandlerFunction handler,
-    List<HttpHandlerFunction> beforeRouteMiddlewareList,
-    List<HttpHandlerFunction> afterRouteMiddlewareList,
+    HttpHandlerFunction mainHandler,
     List<WrapperFunction> routeWrappersList,
   ) {
-    List<HttpHandlerFunction> middlewareHandlerList = [
-      ..._beforeMiddlewareList,
-      ...beforeRouteMiddlewareList,
-      handler,
-      ...afterRouteMiddlewareList,
-      ..._afterMiddlewareList,
-    ];
-
     List<WrapperFunction> wrapperList = [
       ..._wrapperList,
       ...routeWrappersList,
@@ -254,11 +207,11 @@ class Sirius {
         throw Exception(
             "method {$method} and path {$path} is already registered.");
       } else {
-        _routesMap[method]![path] = (wrapperList, middlewareHandlerList);
+        _routesMap[method]![path] = (wrapperList, mainHandler);
       }
       return;
     }
-    _routesMap[method] = {path: (wrapperList, middlewareHandlerList)};
+    _routesMap[method] = {path: (wrapperList, mainHandler)};
   }
 
   /// Registers a WebSocket route.

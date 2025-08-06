@@ -22,8 +22,6 @@ class Request {
   final Map<String, String> _headers = {};
   List<String>? tempFilePathList;
 
-  dynamic _passedData;
-
   /// Constructs a [Request] object with an [HttpRequest], path variables, and JSON body.
   ///
   /// Automatically extracts headers into a simplified lowercase map.
@@ -204,30 +202,35 @@ class Request {
   /// ```
   String? headerValue(String key) => _headers[key.toLowerCase()];
 
-  /// Sets custom data to be passed from middleware to subsequent middleware
-  /// or handlers during the request lifecycle.
+  dynamic _contextData;
+
+  /// Stores custom data to be passed from middleware to later middleware
+  /// or request handlers during the lifecycle of a single request.
   ///
-  /// This is useful for sharing computed values like authentication results,
-  /// decoded tokens, or any request-specific metadata.
+  /// This is especially useful for:
+  /// - Passing authenticated user info
+  /// - Sharing decoded JWT tokens
+  /// - Storing preprocessed request metadata
   ///
-  /// ### Example
+  /// ### Example:
   /// ```dart
-  /// request.passData = {"userId": 42};
+  /// request.setContextData = {'userId': 42, 'role': 'admin'};
   /// ```
-  set passData(dynamic data) {
-    _passedData = data;
+  set setContextData(dynamic data) {
+    _contextData = data;
   }
 
-  /// Retrieves data passed earlier in the middleware or handler chain.
+  /// Retrieves context data previously set using [setContextData].
   ///
-  /// Use this to access custom information stored using [passData].
+  /// This allows access to middleware-provided information in your handler logic
+  /// or in later middleware wrappers.
   ///
-  /// ### Example
+  /// ### Example:
   /// ```dart
-  /// final data = request.receiveData;
+  /// final data = request.getContextData;
   /// final userId = data?['userId'];
   /// ```
-  dynamic get receiveData => _passedData;
+  dynamic get getContextData => _contextData;
 
   /// Returns the HTTP method of the request (e.g., GET, POST).
   ///

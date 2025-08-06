@@ -4,7 +4,6 @@ library;
 export 'src/http/sirius.dart';
 export 'src/http/response.dart';
 export 'src/http/request.dart';
-export 'src/abstract_classes/middleware.dart';
 export 'src/enums/data_types.dart';
 export 'src/enums/date_time_formats.dart';
 export 'src/helpers/file_watcher.dart';
@@ -17,6 +16,7 @@ export 'src/http/socket_connection.dart';
 export 'src/sql_builder/query_builder.dart';
 
 export 'inbuilds/cors_handler.dart';
+export 'inbuilds/logger_handler.dart';
 
 // TODO: Export any libraries intended for clients of this package.
 

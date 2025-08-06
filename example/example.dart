@@ -4,9 +4,6 @@ void main() async {
   // Creates a instance of Sirius.
   Sirius sirius = Sirius();
 
-  // Global Middleware
-  sirius.useBefore(LoggerMiddleware().handle);
-
   // Global Wrapper-Middleware
   sirius.wrap(TimerWrapper().handle);
 
@@ -18,8 +15,10 @@ void main() async {
   // User Routes
   sirius.group('/user', (group) {
     group.post('/create', userController.createUser);
-    group.get('/info', userController.getInfo,
-        useAfter: [ResponseTimeMiddleware().handle]);
+    group.get(
+      '/info',
+      userController.getInfo,
+    );
   });
 
   // WebSocket route
@@ -85,7 +84,7 @@ class UserController {
     });
 
     if (!validator.validate()) {
-      return Response.send(validator.getAllErrors, statusCode: 400);
+      return Response.send(validator.getAllErrors, statusCode: 422);
     }
 
     return Response.send({
@@ -95,29 +94,7 @@ class UserController {
   }
 
   Future<Response> getInfo(Request request) async {
-    return Response.next();
-  }
-}
-
-// Logger Middleware
-class LoggerMiddleware extends Middleware {
-  @override
-  Future<Response> handle(Request request) async {
-    print("[LOG] ${request.method} ${request.rawHttpRequest.uri.path}");
-    return Response.next();
-  }
-}
-
-// Response Time Middleware
-class ResponseTimeMiddleware extends Middleware {
-  @override
-  Future<Response> handle(Request request) async {
-    print(
-        "${request.method} ${request.rawHttpRequest.uri.path} ${DateTime.now()}");
-    return Response.send({
-      "name": "Alice",
-      "age": 25,
-    });
+    return Response.sendJson({"message": "User info"});
   }
 }
 
@@ -132,7 +109,7 @@ class TimerWrapper extends Wrapper {
     final response = await nextHandler();
     final end = DateTime.now();
     print(
-        "[TIMER] Request processed in ${end.difference(start).inMilliseconds}ms");
+        "[TIMER] ${request.method} ${request.path} ${response.statusCode} ${end.difference(start).inMilliseconds}ms");
 
     response.addHeader("Content-Type", "application/json");
     return response;

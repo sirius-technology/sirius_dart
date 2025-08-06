@@ -17,8 +17,7 @@ typedef ExceptionHandlerFunction = Future<Response> Function(Request request,
     Response response, int statusCode, Object exception, StackTrace stackTrace);
 
 class Handler {
-  final Map<String,
-          Map<String, (List<WrapperFunction>, List<HttpHandlerFunction>)>>
+  final Map<String, Map<String, (List<WrapperFunction>, HttpHandlerFunction)>>
       _mainRoutes = {};
 
   final Map<String, SocketHandlerFunction> _mainSocketRoutes = {};
@@ -26,8 +25,7 @@ class Handler {
   ExceptionHandlerFunction? _exceptionHandler;
 
   void registerRoutes(
-      Map<String,
-              Map<String, (List<WrapperFunction>, List<HttpHandlerFunction>)>>
+      Map<String, Map<String, (List<WrapperFunction>, HttpHandlerFunction)>>
           routesMap,
       Map<String, SocketHandlerFunction> socketRoutesMap,
       ExceptionHandlerFunction? exceptionHandler) {
@@ -104,12 +102,11 @@ class Handler {
       }
     }
 
-    List<HttpHandlerFunction>? middlewareHandlerList =
-        _mainRoutes[method]![uriPath]?.$2;
+    HttpHandlerFunction? mainHandler = _mainRoutes[method]![uriPath]?.$2;
 
     List<WrapperFunction> wrapperList = _mainRoutes[method]![uriPath]?.$1 ?? [];
 
-    if (middlewareHandlerList == null) {
+    if (mainHandler == null) {
       final routeEntries = _mainRoutes[method];
 
       if (routeEntries != null) {
@@ -117,14 +114,14 @@ class Handler {
           Map<String, String>? matches = _matchRoute(val.key, uriPath);
           if (matches != null) {
             wrapperList = val.value.$1;
-            middlewareHandlerList = val.value.$2;
+            mainHandler = val.value.$2;
             pathVariables = matches;
             break;
           }
         }
       }
 
-      if (middlewareHandlerList == null) {
+      if (mainHandler == null) {
         _sendErrorResponse(
             Request(request, pathVariables, body),
             HttpStatus.notFound,
@@ -142,17 +139,15 @@ class Handler {
       // creating chain for wrapper middleware
       if (wrapperList.isNotEmpty) {
         Future<Response> Function() composed = wrapperList.reversed
-            .fold<Future<Response> Function()>(
-                () => _executeHandlerAndMiddleware(
-                    newRequest, middlewareHandlerList!), (next, wrapper) {
+            .fold<Future<Response> Function()>(() => mainHandler!(newRequest),
+                (next, wrapper) {
           return () => wrapper(newRequest, next);
         });
 
         response = await composed();
       } else {
-        // execute without wrapper middleware (loop middleware and handler will executed)
-        response = await _executeHandlerAndMiddleware(
-            newRequest, middlewareHandlerList);
+        // execute without wrapper middleware
+        response = await mainHandler(newRequest);
       }
 
       _sendSuccessResponse(newRequest, response);
@@ -161,26 +156,6 @@ class Handler {
           newRequest, HttpStatus.internalServerError, err, stackTrace);
     }
     // ---------------------------------
-  }
-
-  Future<Response> _executeHandlerAndMiddleware(
-      Request request, List<HttpHandlerFunction> middlewareHandlerList) async {
-    for (HttpHandlerFunction handler in middlewareHandlerList) {
-      Response response = await handler(request);
-
-      if (response.passedData != null) {
-        request.passData = response.passedData;
-      }
-
-      if (response.isNext == true) {
-        continue;
-      }
-
-      return response;
-    }
-
-    throw Exception(
-        "No response sent by handler. not getting response in handler");
   }
 
   void _sendSuccessResponse(Request request, Response response) {

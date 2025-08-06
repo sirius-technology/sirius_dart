@@ -49,25 +49,25 @@ Future<Response> Function(
 }) {
   return (Request request, Future<Response> Function() nextHandler) async {
     if (request.method == 'OPTIONS') {
-      final res = Response();
-      res.statusCode = 204;
-      res.addHeader('Access-Control-Allow-Origin', allowOrigin);
-      res.addHeader('Access-Control-Allow-Methods', allowMethods);
-      res.addHeader('Access-Control-Allow-Headers', allowHeaders);
+      final response = Response();
+      response.statusCode = 204;
+      response.addHeader('Access-Control-Allow-Origin', allowOrigin);
+      response.addHeader('Access-Control-Allow-Methods', allowMethods);
+      response.addHeader('Access-Control-Allow-Headers', allowHeaders);
       if (allowCredentials) {
-        res.addHeader('Access-Control-Allow-Credentials', 'true');
+        response.addHeader('Access-Control-Allow-Credentials', 'true');
       }
-      return res;
+      return response;
     }
 
-    final res = await nextHandler();
+    final response = await nextHandler();
 
-    res.addHeader('Access-Control-Allow-Origin', allowOrigin);
-    res.addHeader('Access-Control-Allow-Methods', allowMethods);
-    res.addHeader('Access-Control-Allow-Headers', allowHeaders);
+    response.addHeader('Access-Control-Allow-Origin', allowOrigin);
+    response.addHeader('Access-Control-Allow-Methods', allowMethods);
+    response.addHeader('Access-Control-Allow-Headers', allowHeaders);
     if (allowCredentials) {
-      res.addHeader('Access-Control-Allow-Credentials', 'true');
+      response.addHeader('Access-Control-Allow-Credentials', 'true');
     }
-    return res;
+    return response;
   };
 }
