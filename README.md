@@ -1,19 +1,18 @@
 # Sirius ⚡ — A Lightweight Dart Backend Framework
 
 Sirius is a lightweight, expressive, and fast HTTP & WebSocket backend framework built entirely with Dart.  
-It features powerful routing, composable middleware, validation, and wrapper lifecycle hooks
+It features powerful routing, composable wrapper middlewares, validation, and lifecycle hooks.
 
 ---
 
 ## 🚀 Features
 
-- ⚡ Simple, expressive routing (GET, POST, PUT, PATCH, DELETE)
-- 🔁 Middleware support (before & after)
-- 🧱 Wrapper middleware `.wrap()` for lifecycle-level logic (timing, logging, etc.)
-- 🔀 Grouped routes
-- 🔐 Validation with nested objects and list support
+- ⚡ Simple, expressive routing (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`)
+- 🧱 Wrapper middleware via `.wrap()` for lifecycle-level logic (e.g. logging, timing)
+- 🔀 Grouped routes for modular structure
+- 🔐 Validation with nested object and list support
 - 🌐 WebSocket routing support
-- 💡 `dart:io` based performance
+- 💡 Built on top of `dart:io` for raw performance
 
 ---
 
@@ -21,8 +20,8 @@ It features powerful routing, composable middleware, validation, and wrapper lif
 
 ```yaml
 dependencies:
-  sirius_backend: ^2.3.4
-```
+  sirius_backend: ^2.3.5
+````
 
 Then run:
 
@@ -69,45 +68,9 @@ sirius.group('/api', (router) {
 
 ---
 
-## 🧩 Middleware
-
-### Global Middleware
-
-```dart
-sirius.useBefore(AuthMiddleware().handle);
-sirius.useAfter(LoggerMiddleware().handle);
-```
-
-### Route Middleware
-
-```dart
-sirius.get('/profile', (req) async => Response.send('Profile'),
-  useBefore: [AuthMiddleware().handle],
-  useAfter: [LoggerMiddleware().handle],
-);
-```
-
-### Example Middleware
-
-```dart
-class AuthMiddleware extends Middleware {
-  @override
-  Future<Response> handle(Request request) async {
-    final token = request.headerValue('authorization');
-    if (token == 'valid-token') {
-      request.passData = {'userId': 123};
-      return Response.next();
-    }
-    return Response.send({'error': 'Unauthorized'}, statusCode: 401);
-  }
-}
-```
-
----
-
 ## 🌀 Wrapper Middleware (NEW in 2.0)
 
-Wrappers allow full control around the lifecycle of a route.
+Wrappers allow full control over the request lifecycle for tasks like logging, auth, timing, etc.
 
 ```dart
 class TimerWrapper extends Wrapper {
@@ -131,7 +94,7 @@ sirius.wrap(TimerWrapper().handle);
 Or for a single route:
 
 ```dart
-sirius.get('/dashboard', controller.dashboardHandler, wrap: [TimerWrapper().handle]);
+sirius.get('/dashboard', controller.dashboardHandler, wrappers: [TimerWrapper().handle]);
 ```
 
 ---
@@ -143,7 +106,7 @@ final id = request.pathVariable('id');
 final name = request.jsonValue('name');
 final headers = request.headers;
 final method = request.method;
-final userData = request.receiveData; // Passed via middleware
+final userData = request.getContextData; // Passed via middleware
 ```
 
 ---
@@ -154,14 +117,10 @@ final userData = request.receiveData; // Passed via middleware
 Incoming Request
   └── Global Wrapper (Entry)
       └── Route Wrapper (Entry)
-          └── Global Before Middleware(s)
-              └── Route Before Middleware(s)
-                  └── Route Handler
-                      └── Route After Middleware(s)
-                          └── Global After Middleware(s)
-                              └── Route Wrapper (Exit)
-                                  └── Global Wrapper (Exit)
-                                      └── Response Sent
+          └── Route Handler
+              └── Route Wrapper (Exit)
+                  └── Global Wrapper (Exit)
+                      └── Response Sent
 ```
 
 ```
@@ -171,21 +130,13 @@ Incoming Request
     ↓
 3️⃣ Route Wrapper (Entry)
     ↓
-4️⃣ Global Middlewares (before)
+4️⃣ Route Handler (your main logic)
     ↓
-5️⃣ Route Middlewares (before)
+5️⃣ Route Wrapper (Exit)
     ↓
-6️⃣ Route Handler (your main logic)
+6️⃣ Global Wrapper (Exit)
     ↓
-7️⃣ Route Middlewares (after)
-    ↓
-8️⃣ Global Middlewares (after)
-    ↓
-9️⃣ Route Wrapper (Exit)
-    ↓
-🔟 Global Wrapper (Exit)
-    ↓
-🟢 Response Sent
+7️⃣ 🟢 Response Sent
 ```
 
 ---
@@ -248,7 +199,6 @@ if (!validator.validate()) {
 return Response.send({"message": "Success"});
 return Response.send({"error": "Unauthorized"}, statusCode: 401);
 return Response.sendJson({"error": "Unauthorized"}, statusCode: 401);
-return Response.next(); // To continue in middleware/chain
 ```
 
 You can also override headers:
@@ -265,26 +215,29 @@ return Response.send({'ok': true}, overrideHeaders: (headers) {
 
 ```dart
 sirius.webSocket('/chat', (request, socketConn) {
-    final connId = socketConn.getId;
-    print("Client connected: $connId");
+  final connId = socketConn.getId;
+  print("Client connected: $connId");
 
-    // Respond to a custom event
-    socketConn.onEvent("ping", (data) {
-      print("Received ping: $data");
-      socketConn.sendEvent("pong", {"message": "Pong received!", "echo": data});
-    });
-
-    // Listen to raw messages (not event-based)
-    socketConn.onData((msg) {
-      print("Raw message: $msg");
-      socketConn.sendData("Echo: $msg");
-    });
-
-    // Handle disconnection
-    socketConn.onDisconnect(() {
-      print("Client disconnected: $connId");
+  // Respond to a custom event
+  socketConn.onEvent("ping", (data) {
+    print("Received ping: $data");
+    socketConn.sendEvent("pong", {
+      "message": "Pong received!",
+      "echo": data,
     });
   });
+
+  // Listen to raw messages (not event-based)
+  socketConn.onData((msg) {
+    print("Raw message: $msg");
+    socketConn.sendData("Echo: $msg");
+  });
+
+  // Handle disconnection
+  socketConn.onDisconnect(() {
+    print("Client disconnected: $connId");
+  });
+});
 ```
 
 ---
@@ -292,11 +245,13 @@ sirius.webSocket('/chat', (request, socketConn) {
 ## 🧱 Advanced Usage: Route Composition
 
 ```dart
-sirius.get('/secure-data',
+sirius.get(
+  '/secure-data',
   secureDataHandler,
-  useBefore: [AuthMiddleware().handle],
-  useAfter: [LoggerMiddleware().handle],
-  wrap: [TimerWrapper().handle],
+  wrappers: [
+    TimerWrapper().handle,
+    AuthWrapper().handle,
+  ],
 );
 ```
 
@@ -310,4 +265,7 @@ MIT License — free for commercial and personal use.
 
 ## 🤝 Contributing
 
-Pull requests, issues, and feature suggestions are welcome. Let's make backend dev in Dart delightful!
+Pull requests, issues, and feature suggestions are welcome.
+Let’s make backend development in Dart delightful!
+
+```

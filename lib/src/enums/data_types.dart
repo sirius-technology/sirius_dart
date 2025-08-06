@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 /// Enum representing supported primitive data types.
 ///
 /// This enum is commonly used in validation, serialization, or

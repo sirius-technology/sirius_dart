@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 /// Enum representing different date and time formatting styles.
 ///
 /// This enum can be used to specify the desired format when handling

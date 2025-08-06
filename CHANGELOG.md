@@ -1,3 +1,7 @@
+## 2.3.5
+- 🔁 Removed unintended loop execution of middlewares to ensure wrappers run only once per request
+- 🧹 Minor internal cleanup and optimization
+
 ## 2.3.4
 - 🌐 Added built-in `corsHandler` middleware to simplify CORS handling across projects
 - 🛠️ Developers can now easily enable CORS using `.wrap(corsHandler())` with customizable options
