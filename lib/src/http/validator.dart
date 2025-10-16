@@ -105,13 +105,42 @@ class Validator {
 
     _errorsMap.clear();
 
-    for (MapEntry<String, ValidationRules> val in rules.entries) {
-      var value = fields[val.key];
-      String field = val.key;
-      ValidationRules rule = val.value;
+    for (MapEntry<String, ValidationRules> e in rules.entries) {
+      var value = fields[e.key];
+      String field = e.key;
+      ValidationRules rule = e.value;
 
       if (rule.nullable && value == null) {
         continue;
+      }
+
+      // if (isTypeSafety) {
+      //   if (value is String) {
+      //     final parseNum = num.tryParse(value);
+      //     if (parseNum != null) {
+      //       value = parseNum;
+      //     } else {
+      //       final parseBool = bool.tryParse(value);
+      //       if (parseBool != null) {
+      //         value = parseBool;
+      //       }
+      //     }
+      //   }
+      // }
+
+      // Parsing for Query Params and Path Variables Fields
+      if (isTypeSafety && value is String) {
+        // Try parse number
+        final parsedNum = num.tryParse(value);
+        if (parsedNum != null) {
+          value = parsedNum;
+        } else {
+          // Try parse boolean
+          final parsedBool = bool.tryParse(value);
+          if (parsedBool != null) {
+            value = parsedBool;
+          }
+        }
       }
 
       // Required Validation
