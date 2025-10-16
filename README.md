@@ -267,5 +267,3 @@ MIT License — free for commercial and personal use.
 
 Pull requests, issues, and feature suggestions are welcome.
 Let’s make backend development in Dart delightful!
-
-```

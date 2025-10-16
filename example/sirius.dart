@@ -1,19 +1,17 @@
-import 'package:sirius_backend/sirius_backend.dart';
+Future<void> main() async {
+  // Sirius app = Sirius();
 
-void main() {
-  Sirius app = Sirius();
+  // app.wrap((req, next) async {
+  //   final res = await next();
 
-  app.wrap((req, next) async {
-    final res = await next();
+  //   return res;
+  // });
 
-    return res;
-  });
+  // app.get('get', (req) async {
+  //   return Response.sendJson(req);
+  // });
 
-  app.get('get', (req) async {
-    return Response.sendJson(req);
-  });
-
-  app.start(callback: (server) {
-    print("Server is running");
-  });
+  // app.start(callback: (server) {
+  //   print("Server is running");
+  // });
 }

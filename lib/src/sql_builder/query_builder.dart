@@ -159,6 +159,45 @@ class QueryBuilder {
     return (query: query, values: queryValues);
   }
 
+  ({String query, List<Object?> values}) insertBatch(
+      List<Map<String, dynamic>> rows) {
+    if (rows.isEmpty) throw Exception("No rows provided for batch insert.");
+
+    // Ensure all rows have the same columns
+    final columns = rows.first.keys.toList();
+    for (final row in rows) {
+      if (!row.keys.toSet().containsAll(columns)) {
+        throw Exception(
+            "All rows must have the same columns for batch insert.");
+      }
+    }
+
+    final placeholdersList = <String>[];
+    final allValues = <Object?>[];
+
+    for (final row in rows) {
+      final rowPlaceholders = <String>[];
+
+      for (final col in columns) {
+        final value = row[col];
+        if (value is RawSql) {
+          rowPlaceholders.add(value.toString());
+          allValues.addAll(value.bindings);
+        } else {
+          rowPlaceholders.add(placeholder);
+          allValues.add(value);
+        }
+      }
+
+      placeholdersList.add("(${rowPlaceholders.join(', ')})");
+    }
+
+    final query =
+        "INSERT INTO $_table (${columns.join(', ')}) VALUES ${placeholdersList.join(', ')};";
+
+    return (query: query, values: allValues);
+  }
+
   ({String query, List<Object?> values}) update(Map<String, dynamic> values) {
     if (values.isEmpty) throw Exception("No update values provided.");
 

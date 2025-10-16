@@ -54,7 +54,7 @@ class Validator {
   /// ```
   static bool enableTypeSafety = true;
 
-  Map<String, dynamic> fields;
+  final Map<String, dynamic> fields;
   final Map<String, ValidationRules> rules;
   final Map<String, String> _errorsMap = {};
 
