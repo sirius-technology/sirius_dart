@@ -54,6 +54,36 @@ class Validator {
   /// ```
   static bool enableTypeSafety = true;
 
+  /// A global flag that enables or disables automatic parsing of string values
+  /// into their corresponding numeric or boolean types during validation.
+  ///
+  /// When `true` (default), the [Validator] will attempt to automatically
+  /// convert:
+  /// - Strings containing numeric values (e.g., `"2"`) → `num`
+  /// - Strings containing boolean values (`"true"` / `"false"`) → `bool`
+  ///
+  /// This is particularly useful when validating query parameters or path
+  /// variables, which are always received as strings in HTTP requests.
+  ///
+  /// When `false`, values are not auto-parsed, and type validation is applied
+  /// directly to the original types in [fields].
+  ///
+  /// You can override this behavior per-validation call using the [parsing]
+  /// parameter in [validate()].
+  ///
+  /// ### Example:
+  /// ```dart
+  /// // Enable parsing globally
+  /// Validator.enableParsing = true;
+  ///
+  /// final validator = Validator(fields, rules);
+  /// validator.validate();
+  ///
+  /// // Override for a single validation call:
+  /// validator.validate(parsing: false);
+  /// ```
+  static bool enableParsing = true;
+
   final Map<String, dynamic> fields;
   final Map<String, ValidationRules> rules;
   final Map<String, String> _errorsMap = {};
@@ -72,10 +102,17 @@ class Validator {
   ///
   /// ### Type Safety
   /// - By default, the method uses the static global flag [enableTypeSafety].
-  /// - You can override it for a specific validation call using the [typeSafety] parameter.
+  /// - You can override it per-validation call using the [typeSafety] parameter.
+  /// - When enabled (`true`), incompatible types are logged as validation errors.
+  /// - When disabled (`false`), type mismatches throw exceptions immediately.
   ///
-  /// When type safety is enabled (`true`), incompatible types are handled as validation errors.
-  /// When disabled (`false`), the method throws exceptions on type mismatches.
+  /// ### Automatic Parsing
+  /// - Controlled by the `parsing` parameter (default `true`) or global [enableParsing].
+  /// - When enabled, string values are automatically coerced to numbers or booleans
+  ///   if the corresponding [ValidationRules] expect a numeric or boolean type.
+  /// - This is especially useful for query parameters or path variables
+  ///   that are always received as strings in HTTP requests.
+  /// - When disabled, values are validated as-is without any type coercion.
   ///
   /// ### Example:
   /// ```dart
@@ -91,16 +128,27 @@ class Validator {
   ///   print(validator.getAllErrors);
   /// }
   /// ```
-  ///
+  /// ### Override type safety or parsing for a single run:
+  /// ```dart
+  /// validator.validate(typeSafety: false, parsing: false);
+  /// ```
   /// ### Override type safety for a single run:
   /// ```dart
   /// validator.validate(typeSafety: false); // Will throw on type errors
   /// ```
-  bool validate({bool? typeSafety}) {
+  /// ### Override type parsing for a single run:
+  /// ```dart
+  /// validator.validate(parsing: false); // Will validate on type errors
+  /// ```
+  bool validate({bool? typeSafety, bool? parsing}) {
     bool isTypeSafety = enableTypeSafety;
-
     if (typeSafety != null) {
       isTypeSafety = typeSafety;
+    }
+
+    bool isParsing = enableParsing;
+    if (parsing != null) {
+      isParsing = parsing;
     }
 
     _errorsMap.clear();
@@ -114,22 +162,8 @@ class Validator {
         continue;
       }
 
-      // if (isTypeSafety) {
-      //   if (value is String) {
-      //     final parseNum = num.tryParse(value);
-      //     if (parseNum != null) {
-      //       value = parseNum;
-      //     } else {
-      //       final parseBool = bool.tryParse(value);
-      //       if (parseBool != null) {
-      //         value = parseBool;
-      //       }
-      //     }
-      //   }
-      // }
-
       // Parsing for Query Params and Path Variables Fields
-      if (isTypeSafety && value is String) {
+      if (isParsing && value is String) {
         // Try parse number
         final parsedNum = num.tryParse(value);
         if (parsedNum != null) {
