@@ -1,3 +1,7 @@
+## 2.3.6
+- ✨ Added automatic parsing of string fields to numbers or booleans via `Validator.enableParsing` and `validate(parsing: true)`  
+  This ensures query parameters and path variables are correctly coerced before validation.
+
 ## 2.3.5
 - 🔁 Removed unintended loop execution of middlewares to ensure wrappers run only once per request
 - 🧹 Minor internal cleanup and optimization
