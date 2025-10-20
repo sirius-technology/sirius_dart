@@ -20,7 +20,7 @@ It features powerful routing, composable wrapper middlewares, validation, and li
 
 ```yaml
 dependencies:
-  sirius_backend: ^2.3.6
+  sirius_backend: ^2.3.7
 ````
 
 Then run:
@@ -146,7 +146,7 @@ Incoming Request
 ### Basic Validation
 
 ```dart
-final validator = Validator(request.getAllFields, {
+final validator = Validator(request, {
   'name': ValidationRules(required: required(message: "Name is required")),
   'age': ValidationRules(minNumber: minNumber(18)),
 });

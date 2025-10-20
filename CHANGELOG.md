@@ -1,3 +1,8 @@
+## 2.3.7
+- 🛠️ Removed validate(parsing: true) feature.
+- ✨ Updated Validator constructor: now Validator(request, rules).
+- ⚡ Optimized validation logic for better performance and error handling.
+
 ## 2.3.6
 - ✨ Added automatic parsing of string fields to numbers or booleans via `Validator.enableParsing` and `validate(parsing: true)`  
   This ensures query parameters and path variables are correctly coerced before validation.
