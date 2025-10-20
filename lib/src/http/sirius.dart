@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:sirius_backend/src/constants/constant_methods.dart';
+import 'package:sirius_backend/src/helpers/logging.dart';
 import 'package:sirius_backend/src/http/handler.dart';
 
 /// Sirius is a lightweight and extensible HTTP and WebSocket server framework for Dart.
@@ -252,7 +253,17 @@ class Sirius {
   }) async {
     _removeTempFolder();
     _handler.registerRoutes(_routesMap, _socketRoutesMap, exceptionHandler);
-    _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
+
+    try {
+      _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
+    } on SocketException catch (e) {
+      if (e.osError?.errorCode == 48) {
+        logError(
+            "⚠️ Port $port is already in use. Please stop the previous server or use a different port");
+        return;
+      }
+      rethrow;
+    }
 
     if (callback != null) {
       callback(_server!);

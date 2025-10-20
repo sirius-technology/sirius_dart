@@ -2,116 +2,59 @@ import 'dart:io';
 
 import 'package:sirius_backend/sirius_backend.dart';
 
-/// A utility class to validate incoming request data against
-/// a set of defined [ValidationRules] for each field.
+/// A comprehensive request validation utility for the Sirius backend framework.
 ///
-/// Example usage:
+/// The [Validator] validates request input fields (from path variables, query
+/// parameters, or body) against a set of defined [ValidationRules].
+///
+/// It supports:
+/// - Type validation (`string`, `number`, `boolean`, `map`, `list`)
+/// - Required and nullable fields
+/// - Length and numeric constraints
+/// - Email, URL, and Date format validation
+/// - Nested object (`childMap`) and list (`childList`) validation
+/// - Custom regex and callback validation
+///
+/// ### Example
 /// ```dart
-/// Map<String, ValidationRules> rules = {
-///   "email": ValidationRules(required : required()),
-///   "age": ValidationRules(minNumber : minNumber(18)),
+/// final rules = {
+///   "email": ValidationRules(required: required(), validEmail: validEmail()),
+///   "age": ValidationRules(minNumber: minNumber(18)),
 /// };
 ///
 /// final validator = Validator(request, rules);
 ///
 /// if (!validator.validate()) {
-///   return Response.badRequest(body: validator.getAllErrors);
+///   return errorResponse(validator.getAllErrors, 422);
 /// }
 /// ```
 class Validator {
-  /// Constructs a [Validator] instance with a [Request] and validation [rules].
+  /// Creates a [Validator] instance using a [Request] and its validation [rules].
   ///
-  /// The request body is parsed as JSON and stored internally.
+  /// The validator automatically segregates request fields into:
+  /// - `fieldStrings`: String-based data (query/path/form fields)
+  /// - `fieldDynamics`: Dynamic data (JSON or multipart)
   ///
-  /// Throws an [Exception] if the request body is missing or not JSON.
+  /// Throws an [Exception] if request body parsing fails.
   Validator(this.request, this.rules);
 
-  /// A global flag that enables or disables type safety checks during validation.
+  /// Global flag to enable or disable type-safety across all validation calls.
   ///
-  /// When `true`, the [Validator] will **not throw exceptions** for data type mismatches,
-  /// but instead log them as validation errors in [getAllErrors].
+  /// - When `true`, invalid data types **do not throw exceptions** —
+  ///   instead, validation errors are recorded.
+  /// - When `false`, validation stops immediately on type mismatches.
   ///
-  /// When `false`, the [Validator] will throw an [Exception] immediately upon encountering
-  /// a rule that expects a specific data type but receives an incompatible value.
+  /// Useful for switching between strict (debug) and safe (production) validation.
   ///
-  /// By default `Validation.enableTypeSafety = true;`
-  ///
-  /// This is useful for controlling whether your framework should crash fast (for debugging),
-  /// or fail gracefully (for production environments).
-  ///
-  /// You can override this per-validation call using the `typeSafety` parameter in [validate()].
-  ///
-  /// ### Example:
+  /// Example:
   /// ```dart
-  /// // Disable type safety globally
   /// Validator.enableTypeSafety = false;
-  ///
-  /// final validator = Validator(fields, rules);
-  ///
-  /// // Will throw an exception if a type mismatch is encountered
-  /// validator.validate();
-  ///
-  /// // Or enable type safety for a single validation run:
-  /// validator.validate(typeSafety: true);
   /// ```
   static bool enableTypeSafety = true;
 
   final Request request;
   final Map<String, ValidationRules> rules;
-  final Map<String, String> _errorsMap = {};
-
-  /// Validates the provided [fields] against the defined [rules].
-  ///
-  /// This method runs all validation checks configured via [ValidationRules]
-  /// such as required fields, data types, length, numeric range, email, URL,
-  /// date formats, nested structures, and custom validations.
-  ///
-  /// Returns `true` if all fields pass validation, otherwise returns `false`.
-  ///
-  /// If validation fails, the specific error messages can be retrieved using:
-  /// - [getAllErrors] for all errors as a `Map<String, String>`
-  /// - [getError] for the first error as a `MapEntry<String, String>`
-  ///
-  /// ### Type Safety
-  /// - By default, the method uses the static global flag [enableTypeSafety].
-  /// - You can override it per-validation call using the [typeSafety] parameter.
-  /// - When enabled (`true`), incompatible types are logged as validation errors.
-  /// - When disabled (`false`), type mismatches throw exceptions immediately.
-  ///
-  /// ### Automatic Parsing
-  /// - Controlled by the `parsing` parameter (default `true`) or global [enableParsing].
-  /// - When enabled, string values are automatically coerced to numbers or booleans
-  ///   if the corresponding [ValidationRules] expect a numeric or boolean type.
-  /// - This is especially useful for query parameters or path variables
-  ///   that are always received as strings in HTTP requests.
-  /// - When disabled, values are validated as-is without any type coercion.
-  ///
-  /// ### Example:
-  /// ```dart
-  /// final validator = Validator({
-  ///   "email": "user@example.com",
-  ///   "age": 17,
-  /// }, {
-  ///   "email": ValidationRules(validEmail: validEmail()),
-  ///   "age": ValidationRules(minNumber: minNumber(18)),
-  /// });
-  ///
-  /// if (!validator.validate()) {
-  ///   print(validator.getAllErrors);
-  /// }
-  /// ```
-  /// ### Override type safety or parsing for a single run:
-  /// ```dart
-  /// validator.validate(typeSafety: false, parsing: false);
-  /// ```
-  /// ### Override type safety for a single run:
-  /// ```dart
-  /// validator.validate(typeSafety: false); // Will throw on type errors
-  /// ```
-  /// ### Override type parsing for a single run:
-  /// ```dart
-  /// validator.validate(parsing: false); // Will validate on type errors
-  /// ```
+  Map<String, String> _errorsMap = {};
 
   (Map<String, String>, Map<String, dynamic>) _segregateFields() {
     HttpRequest rawRequest = request.rawHttpRequest;
@@ -144,6 +87,93 @@ class Validator {
     }
   }
 
+  /// Executes validation for all fields extracted from the provided [Request].
+  ///
+  /// This method validates every field found in the request — including
+  /// **path variables**, **query parameters**, and **body data** — against
+  /// the corresponding [ValidationRules] defined in the rules map.
+  ///
+  /// The validation system ensures that all incoming data matches the expected
+  /// structure, types, and constraints such as:
+  /// - Required fields
+  /// - Data types (string, number, boolean, etc.)
+  /// - Length limits and numeric ranges
+  /// - Format checks (email, URL, date)
+  /// - Nested map or list structures
+  /// - Custom validation logic
+  ///
+  /// ---
+  ///
+  /// ### ✅ Return Value
+  /// - Returns `true` → All validations passed successfully.
+  /// - Returns `false` → One or more validation rules failed.
+  ///
+  /// ---
+  ///
+  /// ### ⚙️ Parameters
+  /// - **[typeSafety]** *(optional)* — Overrides the global `enableTypeSafety` flag
+  ///   for this specific validation run.
+  ///   - When `true`: incompatible types (e.g., a string instead of a number)
+  ///     are treated as validation errors.
+  ///   - When `false`: type mismatches throw runtime exceptions.
+  ///
+  /// ---
+  ///
+  /// ### 🔍 Error Handling
+  /// When validation fails:
+  /// - `getAllErrors` → Returns all errors as a `Map<String, String>`.
+  /// - `getError` → Returns the first error as a `MapEntry<String, String>`.
+  ///
+  /// ---
+  ///
+  /// ### 💡 Example: Basic Usage
+  /// ```dart
+  /// final rules = {
+  ///   "email": ValidationRules(validEmail: validEmail()),
+  ///   "age": ValidationRules(minNumber: minNumber(18)),
+  /// }
+  /// final validator = Validator(request, rules);
+  ///
+  /// if (!validator.validate()) {
+  ///   print(validator.getAllErrors);
+  /// }
+  /// ```
+  ///
+  /// ---
+  ///
+  /// ### 💡 Example: Override Type Safety
+  /// ```dart
+  /// validator.validate(typeSafety: false); // Throws if data types mismatch
+  /// ```
+  ///
+  /// ---
+  ///
+  /// ### 🧠 Notes
+  /// - Automatically collects and merges data from:
+  ///   - Path variables
+  ///   - Query parameters
+  ///   - Request body
+  /// - Runs child (nested) validations recursively for maps and lists.
+  /// - Safe to call multiple times on the same validator instance.
+  ///
+  /// ---
+  ///
+  /// ### 🔧 Example of Nested Validation
+  /// ```dart
+  /// final validator = Validator(request, {
+  ///   "items": ValidationRules(
+  ///   required: required(),
+  ///   dataType: dataType(DataTypes.LIST),
+  ///   childList: ValidationRules(
+  ///           required: required(), dataType: dataType(DataTypes.STRING))
+  ///       .forEachElement(),
+  /// ),
+  /// });
+  ///
+  /// if (!validator.validate()) {
+  ///   print(validator.getAllErrors);
+  /// }
+  /// ```
   bool validate({bool? typeSafety}) {
     bool isTypeSafety = enableTypeSafety;
     if (typeSafety != null) {
@@ -154,73 +184,58 @@ class Validator {
 
     final (fieldStrings, fieldDynamics) = _segregateFields();
 
-    bool isValidate = false;
-    isValidate = _internalValidate(fieldStrings, rules, isTypeSafety, true);
-    isValidate = _internalValidate(fieldDynamics, rules, isTypeSafety, false);
-
-    return isValidate;
-  }
-
-  /// Returns a map of all validation errors.
-  ///
-  /// Each key represents the field name, and the value is the error message.
-  ///
-  /// Example output:
-  /// ```dart
-  /// {
-  ///   "email": "Email is required",
-  ///   "age": "Age must be at least 18"
-  /// }
-  /// ```
-  Map<String, String> get getAllErrors => _errorsMap;
-
-  /// Returns the first validation error as a [MapEntry].
-  ///
-  /// Useful when only the first error matters, such as for immediate UI feedback.
-  ///
-  /// Example:
-  /// ```dart
-  /// final error = validator.getError;
-  /// print("${error.key} => ${error.value}");
-  /// ```
-  MapEntry<String, String> get getError => _errorsMap.entries.first;
-
-  bool _internalValidate(Map<String, dynamic> fields,
-      Map<String, ValidationRules> r, bool isTypeSafety, bool isString) {
-    for (MapEntry<String, ValidationRules> e in r.entries) {
-      if (isString) {
-        _validateStrings(fields[e.key], e, isTypeSafety);
-      } else {
-        _validateDynamics(fields[e.key], e, isTypeSafety);
-      }
-    }
+    _errorsMap =
+        _internalValidate(fieldStrings, fieldDynamics, rules, isTypeSafety);
 
     return _errorsMap.isEmpty;
   }
 
-  void _validateStrings(
+  Map<String, String> _internalValidate(
+      Map<String, String> fieldString,
+      Map<String, dynamic> fieldDynamic,
+      Map<String, ValidationRules> r,
+      bool isTypeSafety) {
+    Map<String, String> errors = {};
+
+    for (MapEntry<String, ValidationRules> e in r.entries) {
+      if (fieldString.containsKey(e.key)) {
+        final error = _validateStrings(fieldString[e.key], e, isTypeSafety);
+        if (error != null) {
+          errors[error.$1] = error.$2;
+        }
+      } else {
+        final error = _validateDynamics(fieldDynamic[e.key], e, isTypeSafety);
+        if (error != null) {
+          errors[error.$1] = error.$2;
+        }
+      }
+    }
+
+    return errors;
+  }
+
+  (String, String)? _validateStrings(
       String? value, MapEntry<String, ValidationRules> r, bool isTypeSafety) {
     final String field = r.key;
     final ValidationRules rule = r.value;
+    (String, String)? error;
 
     if (rule.nullable && value == null) {
-      return;
+      return error;
     }
 
     // Required Validation
     if (rule.required != null) {
       if (value == null) {
-        _errorsMap[field] = rule.required!.$2 ?? "$field is required";
-        return;
+        return (field, rule.required!.$2 ?? "$field is required");
       }
       if (rule.required!.$1 && value.trim().isEmpty) {
-        _errorsMap[field] =
-            rule.required!.$2 ?? "$field is required and should not be empty";
-        return;
+        return (
+          field,
+          rule.required!.$2 ?? "$field is required and should not be empty"
+        );
       }
     }
-
-    value!;
 
     // Data Type Validation
     if (rule.dataType != null) {
@@ -229,16 +244,14 @@ class Validator {
           // Value is always string because passing only string values
           break;
         case DataTypes.NUMBER:
-          if (num.tryParse(value) == null) {
-            _errorsMap[field] = rule.dataType!.$2 ?? "$field must be a number";
-            return;
+          if (num.tryParse(value!) == null) {
+            return (field, rule.dataType!.$2 ?? "$field must be a number");
           }
 
           break;
         case DataTypes.BOOLEAN:
-          if (bool.tryParse(value) == null) {
-            _errorsMap[field] = rule.dataType!.$2 ?? "$field must be a boolean";
-            return;
+          if (bool.tryParse(value!) == null) {
+            return (field, rule.dataType!.$2 ?? "$field must be a boolean");
           }
           break;
         case DataTypes.MAP:
@@ -252,86 +265,99 @@ class Validator {
 
     // Min Length Validation
     if (rule.minLength != null) {
-      if (value.length < rule.minLength!.$1) {
-        _errorsMap[field] = rule.minLength!.$2 ??
-            "$field must be at least ${rule.minLength!.$1} characters";
-        return;
+      if (value!.length < rule.minLength!.$1) {
+        return (
+          field,
+          rule.minLength!.$2 ??
+              "$field must be at least ${rule.minLength!.$1} characters"
+        );
       }
     }
 
     // Max Length Validation
     if (rule.maxLength != null) {
-      if (value.length > rule.maxLength!.$1) {
-        _errorsMap[field] = rule.maxLength!.$2 ??
-            "$field must not exceed ${rule.maxLength!.$1} characters";
-        return;
+      if (value!.length > rule.maxLength!.$1) {
+        return (
+          field,
+          rule.maxLength!.$2 ??
+              "$field must not exceed ${rule.maxLength!.$1} characters"
+        );
       }
     }
 
     // Exact Length Validation
     if (rule.exactLength != null) {
-      if (value.length != rule.exactLength!.$1) {
-        _errorsMap[field] = rule.exactLength!.$2 ??
-            "$field must be exactly ${rule.exactLength!.$1} characters";
-        return;
+      if (value!.length != rule.exactLength!.$1) {
+        return (
+          field,
+          rule.exactLength!.$2 ??
+              "$field must be exactly ${rule.exactLength!.$1} characters"
+        );
       }
     }
 
     // Min Number Validation
     if (rule.minNumber != null) {
-      num? n = num.tryParse(value);
+      num? n = num.tryParse(value!);
       if (n == null) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be a number for minimum number validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be a number for minimum number validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be a number for minimum number validation");
       }
       if (n < rule.minNumber!.$1) {
-        _errorsMap[field] = rule.minNumber!.$2 ??
-            "$field must be at least ${rule.minNumber!.$1}";
-        return;
+        return (
+          field,
+          rule.minNumber!.$2 ?? "$field must be at least ${rule.minNumber!.$1}"
+        );
       }
     }
 
     // Max Number Validation
     if (rule.maxNumber != null) {
-      num? n = num.tryParse(value);
+      num? n = num.tryParse(value!);
       if (n == null) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be a number for maximum number validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be a number for maximum number validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be a number for maximum number validation");
       }
       if (n > rule.maxNumber!.$1) {
-        _errorsMap[field] = rule.maxNumber!.$2 ??
-            "$field must not exceed ${rule.maxNumber!.$1}";
-        return;
+        return (
+          field,
+          rule.maxNumber!.$2 ?? "$field must not exceed ${rule.maxNumber!.$1}"
+        );
       }
     }
 
     // Exact Number Validation
     if (rule.exactNumber != null) {
-      num? n = num.tryParse(value);
+      num? n = num.tryParse(value!);
       if (n == null) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be a number for exact number validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be a number for exact number validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be a number for exact number validation");
       }
 
       if (n != rule.exactNumber!.$1) {
-        _errorsMap[field] = rule.exactNumber!.$2 ??
-            "$field must be exactly ${rule.exactNumber!.$1}";
-        return;
+        return (
+          field,
+          rule.exactNumber!.$2 ??
+              "$field must be exactly ${rule.exactNumber!.$1}"
+        );
       }
     }
 
@@ -339,9 +365,8 @@ class Validator {
     if (rule.validEmail != null) {
       RegExp emailRegex =
           RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
-      if (!emailRegex.hasMatch(value)) {
-        _errorsMap[field] = rule.validEmail!.$1 ?? "Invalid email format";
-        return;
+      if (!emailRegex.hasMatch(value!)) {
+        return (field, rule.validEmail!.$1 ?? "Invalid email format");
       }
     }
 
@@ -349,9 +374,8 @@ class Validator {
     if (rule.validUrl != null) {
       RegExp urlRegex = RegExp(
           r"^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$");
-      if (!urlRegex.hasMatch(value)) {
-        _errorsMap[field] = rule.validUrl!.$1 ?? "Invalid URL format";
-        return;
+      if (!urlRegex.hasMatch(value!)) {
+        return (field, rule.validUrl!.$1 ?? "Invalid URL format");
       }
     }
 
@@ -360,36 +384,31 @@ class Validator {
       if (rule.validDate!.$1 == null) {
         RegExp dateTimeRegex = RegExp(
             r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]) (?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?$");
-        if (!dateTimeRegex.hasMatch(value)) {
-          _errorsMap[field] = rule.validDate!.$2 ?? "Invalid datetime format";
-          return;
+        if (!dateTimeRegex.hasMatch(value!)) {
+          return (field, rule.validDate!.$2 ?? "Invalid datetime format");
         }
       } else {
         switch (rule.validDate!.$1!) {
           case DateTimeFormat.DATE:
             RegExp dateRegex =
                 RegExp(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$");
-            if (!dateRegex.hasMatch(value)) {
-              _errorsMap[field] = rule.validDate!.$2 ?? "Invalid date format";
-              return;
+            if (!dateRegex.hasMatch(value!)) {
+              return (field, rule.validDate!.$2 ?? "Invalid date format");
             }
             break;
           case DateTimeFormat.TIME:
             RegExp timeRegex =
                 RegExp(r"^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?$");
-            if (!timeRegex.hasMatch(value)) {
-              _errorsMap[field] = rule.validDate!.$2 ?? "Invalid time format";
-              return;
+            if (!timeRegex.hasMatch(value!)) {
+              return (field, rule.validDate!.$2 ?? "Invalid time format");
             }
             break;
 
           case DateTimeFormat.DATETIME:
             RegExp dateTimeRegex = RegExp(
                 r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]) (?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?$");
-            if (!dateTimeRegex.hasMatch(value)) {
-              _errorsMap[field] =
-                  rule.validDate!.$2 ?? "Invalid datetime format";
-              return;
+            if (!dateTimeRegex.hasMatch(value!)) {
+              return (field, rule.validDate!.$2 ?? "Invalid datetime format");
             }
             break;
         }
@@ -398,7 +417,7 @@ class Validator {
 
     // // In List Validation
     // if (rule.inList != null) {
-    //   if (!rule.inList!.$1.contains(value)) {
+    //   if (!rule.inList!.$1.contains(value!)) {
     //     _errorsMap[field] = rule.inList!.$2 ??
     //         "$field should be one of: ${rule.inList!.$1.join(', ')}";
     //     continue;
@@ -407,7 +426,7 @@ class Validator {
 
     // // Not In List Validation
     // if (rule.notInList != null) {
-    //   if (rule.notInList!.$1.contains(value)) {
+    //   if (rule.notInList!.$1.contains(value!)) {
     //     _errorsMap[field] = rule.notInList!.$2 ??
     //         "$field must not be one of: ${rule.notInList!.$1.join(', ')}";
     //     continue;
@@ -416,7 +435,7 @@ class Validator {
 
     // // Nested Map Validation
     // if (rule.childMap != null && rule.childMap!.isNotEmpty) {
-    //   if (value is! Map<String, dynamic>) {
+    //   if (value! is! Map<String, dynamic>) {
     //     if (isTypeSafety) {
     //       _errorsMap[field] =
     //           "Invalid data type: '$field' must be an object for nested map validation";
@@ -426,7 +445,7 @@ class Validator {
     //         "Invalid data type: '$field' must be an object for nested map validation");
     //   }
 
-    //   Validator childValidator = Validator(value, rule.childMap!);
+    //   Validator childValidator = Validator(value!, rule.childMap!);
     //   if (!childValidator.validate()) {
     //     childValidator.getAllErrors.forEach((key, val) {
     //       _errorsMap["$field.$key"] = val;
@@ -437,7 +456,7 @@ class Validator {
 
     // // Nested List Validation
     // if (rule.childList != null && rule.childList!.isNotEmpty) {
-    //   if (value is! List<dynamic>) {
+    //   if (value! is! List<dynamic>) {
     //     if (isTypeSafety) {
     //       _errorsMap[field] =
     //           "Invalid data type: '$field' must be a List for nested list validation";
@@ -448,11 +467,11 @@ class Validator {
     //   }
 
     //   Map<String, dynamic> listFieldMap = {
-    //     for (int i = 0; i < value.length; i++) i.toString(): value[i]
+    //     for (int i = 0; i < value!.length; i++) i.toString(): value![i]
     //   };
 
     //   if (rule.childList!.last.isRuleForEachElement == true) {
-    //     rule.childList = List.filled(value.length, rule.childList!.last);
+    //     rule.childList = List.filled(value!.length, rule.childList!.last);
     //   }
 
     //   Map<String, ValidationRules> listRuleMap = {
@@ -473,42 +492,43 @@ class Validator {
     // Custom Regex Validation
     if (rule.regex != null) {
       RegExp customRegex = RegExp(rule.regex!.$1);
-      if (!customRegex.hasMatch(value)) {
-        _errorsMap[field] = rule.regex!.$2 ?? "Invalid format";
-        return;
+      if (!customRegex.hasMatch(value!)) {
+        return (field, rule.regex!.$2 ?? "Invalid format");
       }
     }
 
     // Custom Callback Function Validation
     if (rule.callback != null) {
-      bool isValid = rule.callback!.$1(value);
+      bool isValid = rule.callback!.$1(value!);
 
       if (!isValid) {
-        _errorsMap[field] = rule.callback!.$2;
-        return;
+        return (field, rule.callback!.$2);
       }
     }
+
+    return error;
   }
 
-  void _validateDynamics(
+  (String, String)? _validateDynamics(
       dynamic value, MapEntry<String, ValidationRules> r, bool isTypeSafety) {
     final String field = r.key;
     final ValidationRules rule = r.value;
+    (String, String)? error;
 
     if (rule.nullable && value == null) {
-      return;
+      return error;
     }
 
     // Required Validation
     if (rule.required != null) {
       if (value == null) {
-        _errorsMap[field] = rule.required!.$2 ?? "$field is required";
-        return;
+        return (field, rule.required!.$2 ?? "$field is required");
       }
       if (rule.required!.$1 && value is String && value.trim().isEmpty) {
-        _errorsMap[field] =
-            rule.required!.$2 ?? "$field is required and should not be empty";
-        return;
+        return (
+          field,
+          rule.required!.$2 ?? "$field is required and should not be empty"
+        );
       }
     }
 
@@ -517,36 +537,31 @@ class Validator {
       switch (rule.dataType!.$1) {
         case DataTypes.STRING:
           if (value is! String) {
-            _errorsMap[field] = rule.dataType!.$2 ?? "$field must be a string";
-            return;
+            return (field, rule.dataType!.$2 ?? "$field must be a string");
           }
           break;
 
         case DataTypes.NUMBER:
           if (value is! num) {
-            _errorsMap[field] = rule.dataType!.$2 ?? "$field must be a number";
-            return;
+            return (field, rule.dataType!.$2 ?? "$field must be a number");
           }
           break;
 
         case DataTypes.BOOLEAN:
           if (value is! bool) {
-            _errorsMap[field] = rule.dataType!.$2 ?? "$field must be a boolean";
-            return;
+            return (field, rule.dataType!.$2 ?? "$field must be a boolean");
           }
           break;
 
         case DataTypes.MAP:
           if (value is! Map<String, dynamic>) {
-            _errorsMap[field] = rule.dataType!.$2 ?? "$field must be an object";
-            return;
+            return (field, rule.dataType!.$2 ?? "$field must be an object");
           }
           break;
 
         case DataTypes.LIST:
           if (value is! List<dynamic>) {
-            _errorsMap[field] = rule.dataType!.$2 ?? "$field must be a list";
-            return;
+            return (field, rule.dataType!.$2 ?? "$field must be a list");
           }
           break;
       }
@@ -555,27 +570,33 @@ class Validator {
     // Min Length Validation
     if (rule.minLength != null) {
       if (value.toString().length < rule.minLength!.$1) {
-        _errorsMap[field] = rule.minLength!.$2 ??
-            "$field must be at least ${rule.minLength!.$1} characters";
-        return;
+        return (
+          field,
+          rule.minLength!.$2 ??
+              "$field must be at least ${rule.minLength!.$1} characters"
+        );
       }
     }
 
     // Max Length Validation
     if (rule.maxLength != null) {
       if (value.toString().length > rule.maxLength!.$1) {
-        _errorsMap[field] = rule.maxLength!.$2 ??
-            "$field must not exceed ${rule.maxLength!.$1} characters";
-        return;
+        return (
+          field,
+          rule.maxLength!.$2 ??
+              "$field must not exceed ${rule.maxLength!.$1} characters"
+        );
       }
     }
 
     // Exact Length Validation
     if (rule.exactLength != null) {
       if (value.toString().length != rule.exactLength!.$1) {
-        _errorsMap[field] = rule.exactLength!.$2 ??
-            "$field must be exactly ${rule.exactLength!.$1} characters";
-        return;
+        return (
+          field,
+          rule.exactLength!.$2 ??
+              "$field must be exactly ${rule.exactLength!.$1} characters"
+        );
       }
     }
 
@@ -583,18 +604,20 @@ class Validator {
     if (rule.minNumber != null) {
       if (value is! num) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be a number for minimum number validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be a number for minimum number validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be a number for minimum number validation");
       }
 
       if (value < rule.minNumber!.$1) {
-        _errorsMap[field] = rule.minNumber!.$2 ??
-            "$field must be at least ${rule.minNumber!.$1}";
-        return;
+        return (
+          field,
+          rule.minNumber!.$2 ?? "$field must be at least ${rule.minNumber!.$1}"
+        );
       }
     }
 
@@ -602,18 +625,20 @@ class Validator {
     if (rule.maxNumber != null) {
       if (value is! num) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be a number for maximum number validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be a number for maximum number validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be a number for maximum number validation");
       }
 
       if (value > rule.maxNumber!.$1) {
-        _errorsMap[field] = rule.maxNumber!.$2 ??
-            "$field must not exceed ${rule.maxNumber!.$1}";
-        return;
+        return (
+          field,
+          rule.maxNumber!.$2 ?? "$field must not exceed ${rule.maxNumber!.$1}"
+        );
       }
     }
 
@@ -621,18 +646,21 @@ class Validator {
     if (rule.exactNumber != null) {
       if (value is! num) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be a number for exact number validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be a number for exact number validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be a number for exact number validation");
       }
 
       if (value != rule.exactNumber!.$1) {
-        _errorsMap[field] = rule.exactNumber!.$2 ??
-            "$field must be exactly ${rule.exactNumber!.$1}";
-        return;
+        return (
+          field,
+          rule.exactNumber!.$2 ??
+              "$field must be exactly ${rule.exactNumber!.$1}"
+        );
       }
     }
 
@@ -640,9 +668,10 @@ class Validator {
     if (rule.validEmail != null) {
       if (value is! String) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be a string for email validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be a string for email validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be a string for email validation");
@@ -651,8 +680,7 @@ class Validator {
       RegExp emailRegex =
           RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
       if (!emailRegex.hasMatch(value)) {
-        _errorsMap[field] = rule.validEmail!.$1 ?? "Invalid email format";
-        return;
+        return (field, rule.validEmail!.$1 ?? "Invalid email format");
       }
     }
 
@@ -660,9 +688,10 @@ class Validator {
     if (rule.validUrl != null) {
       if (value is! String) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be a string for url validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be a string for url validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be a string for url validation");
@@ -671,8 +700,7 @@ class Validator {
       RegExp urlRegex = RegExp(
           r"^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([\/\w .-]*)*\/?$");
       if (!urlRegex.hasMatch(value)) {
-        _errorsMap[field] = rule.validUrl!.$1 ?? "Invalid URL format";
-        return;
+        return (field, rule.validUrl!.$1 ?? "Invalid URL format");
       }
     }
 
@@ -680,9 +708,10 @@ class Validator {
     if (rule.validDate != null) {
       if (value is! String) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be a string for datetime validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be a string for datetime validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be a string for datetime validation");
@@ -692,8 +721,7 @@ class Validator {
         RegExp dateTimeRegex = RegExp(
             r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]) (?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?$");
         if (!dateTimeRegex.hasMatch(value)) {
-          _errorsMap[field] = rule.validDate!.$2 ?? "Invalid datetime format";
-          return;
+          return (field, rule.validDate!.$2 ?? "Invalid datetime format");
         }
       } else {
         switch (rule.validDate!.$1!) {
@@ -701,8 +729,7 @@ class Validator {
             RegExp dateRegex =
                 RegExp(r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$");
             if (!dateRegex.hasMatch(value)) {
-              _errorsMap[field] = rule.validDate!.$2 ?? "Invalid date format";
-              return;
+              return (field, rule.validDate!.$2 ?? "Invalid date format");
             }
             break;
 
@@ -710,8 +737,7 @@ class Validator {
             RegExp timeRegex =
                 RegExp(r"^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?$");
             if (!timeRegex.hasMatch(value)) {
-              _errorsMap[field] = rule.validDate!.$2 ?? "Invalid time format";
-              return;
+              return (field, rule.validDate!.$2 ?? "Invalid time format");
             }
             break;
 
@@ -719,9 +745,7 @@ class Validator {
             RegExp dateTimeRegex = RegExp(
                 r"^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01]) (?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?$");
             if (!dateTimeRegex.hasMatch(value)) {
-              _errorsMap[field] =
-                  rule.validDate!.$2 ?? "Invalid datetime format";
-              return;
+              return (field, rule.validDate!.$2 ?? "Invalid datetime format");
             }
             break;
         }
@@ -731,18 +755,22 @@ class Validator {
     // In List Validation
     if (rule.inList != null) {
       if (!rule.inList!.$1.contains(value)) {
-        _errorsMap[field] = rule.inList!.$2 ??
-            "$field should be one of: ${rule.inList!.$1.join(', ')}";
-        return;
+        return (
+          field,
+          rule.inList!.$2 ??
+              "$field should be one of: ${rule.inList!.$1.join(', ')}"
+        );
       }
     }
 
     // Not In List Validation
     if (rule.notInList != null) {
       if (rule.notInList!.$1.contains(value)) {
-        _errorsMap[field] = rule.notInList!.$2 ??
-            "$field must not be one of: ${rule.notInList!.$1.join(', ')}";
-        return;
+        return (
+          field,
+          rule.notInList!.$2 ??
+              "$field must not be one of: ${rule.notInList!.$1.join(', ')}"
+        );
       }
     }
 
@@ -750,21 +778,21 @@ class Validator {
     if (rule.childMap != null && rule.childMap!.isNotEmpty) {
       if (value is! Map<String, dynamic>) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be an object for nested map validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be an object for nested map validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be an object for nested map validation");
       }
 
       final isChildValidate =
-          _internalValidate(value, rule.childMap!, isTypeSafety, false);
-      if (!isChildValidate) {
-        _errorsMap.forEach((key, val) {
-          _errorsMap["$field.$key"] = val;
-        });
-        return;
+          _internalValidate({}, value, rule.childMap!, isTypeSafety);
+      if (isChildValidate.isNotEmpty) {
+        final errorField = '$field.${isChildValidate.keys.first}';
+        final errorMsg = isChildValidate.values.first;
+        return (errorField, errorMsg);
       }
     }
 
@@ -772,9 +800,10 @@ class Validator {
     if (rule.childList != null && rule.childList!.isNotEmpty) {
       if (value is! List<dynamic>) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be a List for nested list validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be a List for nested list validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be a List for nested list validation");
@@ -794,13 +823,12 @@ class Validator {
       };
 
       final isChildValidate =
-          _internalValidate(listFieldMap, listRuleMap, isTypeSafety, false);
+          _internalValidate({}, listFieldMap, listRuleMap, isTypeSafety);
 
-      if (!isChildValidate) {
-        _errorsMap.forEach((key, val) {
-          _errorsMap["$field.$key"] = val;
-        });
-        return;
+      if (isChildValidate.isNotEmpty) {
+        final errorField = '$field.${isChildValidate.keys.first}';
+        final errorMsg = isChildValidate.values.first;
+        return (errorField, errorMsg);
       }
     }
 
@@ -808,17 +836,17 @@ class Validator {
     if (rule.regex != null) {
       if (value is! String) {
         if (isTypeSafety) {
-          _errorsMap[field] =
-              "Invalid data type: '$field' must be a string for regex validation";
-          return;
+          return (
+            field,
+            "Invalid data type: '$field' must be a string for regex validation"
+          );
         }
         throw Exception(
             "Invalid data type: '$field' must be a string for regex validation");
       }
       RegExp customRegex = RegExp(rule.regex!.$1);
       if (!customRegex.hasMatch(value)) {
-        _errorsMap[field] = rule.regex!.$2 ?? "Invalid format";
-        return;
+        return (field, rule.regex!.$2 ?? "Invalid format");
       }
     }
 
@@ -827,9 +855,31 @@ class Validator {
       bool isValid = rule.callback!.$1(value);
 
       if (!isValid) {
-        _errorsMap[field] = rule.callback!.$2;
-        return;
+        return (field, rule.callback!.$2);
       }
     }
+    return null;
   }
+
+  /// Returns all validation errors as a map of field → message.
+  ///
+  /// Example:
+  /// ```dart
+  /// {
+  ///   "email": "Email is required",
+  ///   "age": "Age must be at least 18"
+  /// }
+  /// ```
+  Map<String, String> get getAllErrors => _errorsMap;
+
+  /// Returns only the first validation error as a [MapEntry].
+  ///
+  /// Useful when you want to show a single error message (e.g., for form UI feedback).
+  ///
+  /// Example:
+  /// ```dart
+  /// final error = validator.getError;
+  /// print("${error.key} => ${error.value}");
+  /// ```
+  MapEntry<String, String> get getError => _errorsMap.entries.first;
 }
