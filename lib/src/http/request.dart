@@ -275,4 +275,10 @@ class Request {
         ...allQueryParams,
         ...(_body?.$1 ?? {}), // highest priority
       };
+
+  // Map<String, dynamic> get validationFields => {
+  //   'PATH_VAR' : _pathVariables,
+  //   'QUERY_PARAM' : allQueryParams,
+  //   'BODY' : _body
+  // };
 }
