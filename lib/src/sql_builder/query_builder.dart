@@ -244,6 +244,25 @@ class QueryBuilder {
   }
 }
 
+extension QueryBuilderCount on QueryBuilder {
+  /// Return COUNT(*) of the query
+  ({String query, List<Object?> values}) count({String column = '*'}) {
+    final selectClause = "COUNT($column) AS total";
+    String queryStr = "SELECT $selectClause FROM $_table";
+
+    if (_joins.isNotEmpty) queryStr += ' ${_joins.join(' ')}';
+
+    final conditions = _combineConditions();
+    if (conditions.isNotEmpty) queryStr += " WHERE $conditions";
+
+    if (_groupBys.isNotEmpty) queryStr += " GROUP BY ${_groupBys.join(', ')}";
+    if (_having != null) queryStr += " HAVING $_having";
+
+    // No orderBy or limit needed for count
+    return (query: "$queryStr;", values: _values);
+  }
+}
+
 class RawSql {
   final String value;
   final List<Object?> bindings;
