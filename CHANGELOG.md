@@ -1,6 +1,11 @@
+## 2.3.8
+- 📦 Added `Response.sendFile()` for serving files directly through HTTP. Supports automatic MIME detection, inline display, and file downloads with custom headers.
+- ⚙️ Improved internal response handling in Handler to support file streaming without memory overflow.
+- 🪶 Minor optimizations for header management and response encoding logic.
+
 ## 2.3.7
 - 🛠️ Removed validate(parsing: true) feature.
-- ✨ Updated Validator constructor: now Validator(request, rules).
+- ✨ Updated Validator constructor: now `Validator(request, rules)`.
 - ⚡ Optimized validation logic for better performance and error handling.
 
 ## 2.3.6
