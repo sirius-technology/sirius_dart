@@ -35,4 +35,9 @@ export 'inbuilds/logger_handler.dart';
 
 // File validation is not done yet
 
+// Am not using HttpResponse for sending response
+// Not able to send any type of file in response
+
+// every data in json encode in final response send in handler class
+
 

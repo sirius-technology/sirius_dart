@@ -1,13 +1,9 @@
+import 'dart:io';
+
 import 'package:sirius_backend/sirius_backend.dart';
 
 Future<void> main() async {
   Sirius app = Sirius();
-
-  // app.wrap((req, next) async {
-  //   final res = await next();
-
-  //   return res;
-  // });
 
   app.post('test', (req) async {
     final rules = {
@@ -37,6 +33,12 @@ Future<void> main() async {
       'query': req.allQueryParams,
       'body': req.getBody,
     });
+  });
+
+  app.get('file', (req) async {
+    return Response.sendFile(
+        File('/Users/someshsahu/_Beaming_India/_PROJECTS/VEDASAR/vedasar.png'),
+        inline: true);
   });
 
   app.start(callback: (server) {

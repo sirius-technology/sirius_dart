@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:sirius_backend/src/helpers/helpers.dart';
+
 /// Represents an HTTP response structure used in the Sirius backend framework.
 ///
 /// This class encapsulates all the necessary details to construct an HTTP response,
@@ -21,7 +23,7 @@ import 'dart:io';
 /// ```
 class Response {
   /// The response body data. Typically a `Map`, `List`, `String`, or `null`.
-  dynamic data;
+  Object? data;
 
   /// The HTTP status code of the response.
   /// Defaults to [HttpStatus.ok] (200).
@@ -166,5 +168,84 @@ class Response {
   /// ```
   void addHeader(String key, String value) {
     headers[key] = value;
+  }
+
+  /// Sends a file as an HTTP response.
+  ///
+  /// This method allows the framework to serve or download static files such as images,
+  /// documents, or any binary data directly from the server.
+  ///
+  /// The method automatically sets proper headers for file transfer and supports both
+  /// **inline display** (for showing directly in browser) and **attachment download**
+  /// (for forcing the browser to download).
+  ///
+  /// ### Features:
+  /// - Automatically detects the MIME type using [getMimeType].
+  /// - Supports `inline` or `attachment` content disposition.
+  /// - Optionally overrides the filename shown to the client.
+  /// - Allows setting custom response headers.
+  /// - Integrates seamlessly with the Sirius response handler.
+  ///
+  /// ### Parameters:
+  /// - [file]: The `File` object to be sent in the response. Must exist.
+  /// - [name]: Optional custom filename for the response (default: actual file name).
+  /// - [inline]: Whether the file should be displayed inline in the browser
+  ///   instead of being downloaded. Defaults to `false` (download mode).
+  /// - [headers]: Optional additional HTTP headers to include in the response.
+  /// - [overrideHeaders]: Optional callback for directly modifying the raw [HttpHeaders].
+  ///
+  /// ### Example (Download as Attachment):
+  /// ```dart
+  /// return Response.sendFile(File('uploads/report.pdf'));
+  /// ```
+  ///
+  /// ### Example (View Inline in Browser):
+  /// ```dart
+  /// return Response.sendFile(
+  ///   File('public/image.png'),
+  ///   inline: true,
+  /// );
+  /// ```
+  ///
+  /// ### Example (Custom Filename with Headers):
+  /// ```dart
+  /// return Response.sendFile(
+  ///   File('data/export.csv'),
+  ///   name: 'user_data.csv',
+  ///   headers: {'Cache-Control': 'no-cache'},
+  /// );
+  /// ```
+  ///
+  /// Throws an [Exception] if the provided file does not exist.
+  static Response sendFile(
+    File file, {
+    String? name,
+    bool inline = false,
+    Map<String, String>? headers,
+    void Function(HttpHeaders headers)? overrideHeaders,
+  }) {
+    if (!file.existsSync()) {
+      throw Exception('File not found: ${file.path}');
+    }
+
+    final mimeType = getMimeType(file.path);
+    final fileName = name ?? file.uri.pathSegments.last;
+
+    final disposition = inline
+        ? 'inline; filename="$fileName"'
+        : 'attachment; filename="$fileName"';
+
+    final fileHeaders = {
+      "Content-Type": mimeType,
+      "Content-Disposition": disposition,
+      ...?headers,
+    };
+
+    return Response(
+      file,
+      HttpStatus.ok,
+      fileHeaders,
+      overrideHeaders,
+    );
   }
 }

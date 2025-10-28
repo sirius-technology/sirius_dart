@@ -158,32 +158,44 @@ class Handler {
     // ---------------------------------
   }
 
-  void _sendSuccessResponse(Request request, Response response) {
+  Future<void> _sendSuccessResponse(Request request, Response response) async {
     HttpRequest rawRequest = request.rawHttpRequest;
+    HttpResponse rawResponse = rawRequest.response;
 
-    if (response.overrideHeaders != null) {
-      response.overrideHeaders!(rawRequest.response.headers);
-    } else {
-      response.headers.forEach((key, value) {
-        rawRequest.response.headers.set(key, value);
-      });
+    try {
+      if (response.overrideHeaders != null) {
+        response.overrideHeaders!(rawResponse.headers);
+      } else {
+        response.headers.forEach((key, value) {
+          rawResponse.headers.set(key, value);
+        });
+      }
+
+      rawResponse.statusCode = response.statusCode;
+
+      if (response.data is File) {
+        final file = response.data as File;
+        // Stream file to response and close
+        await file.openRead().pipe(rawResponse);
+      } else {
+        rawResponse.write(jsonEncode(
+          response.data,
+          toEncodable: (nonEncodable) => nonEncodable is DateTime
+              ? nonEncodable.toIso8601String()
+              : nonEncodable.toString(),
+        ));
+        await rawResponse.close();
+      }
+    } catch (e, st) {
+      await _sendErrorResponse(request, HttpStatus.internalServerError, e, st);
+      return;
     }
-
-    rawRequest.response
-      ..statusCode = response.statusCode
-      ..write(jsonEncode(
-        response.data,
-        toEncodable: (nonEncodable) => nonEncodable is DateTime
-            ? nonEncodable.toIso8601String()
-            : nonEncodable.toString(),
-      ))
-      ..close();
 
     _cleanupTempFiles(request);
   }
 
-  void _sendErrorResponse(Request request, int statusCode, Object exception,
-      StackTrace stackTrace) async {
+  Future<void> _sendErrorResponse(Request request, int statusCode,
+      Object exception, StackTrace stackTrace) async {
     List<Map<String, dynamic>>? structureTrace = formatStackTrace(stackTrace);
 
     Map<String, dynamic> errorResponseData = {
@@ -256,13 +268,13 @@ class Handler {
     }
 
     if (mimeType == 'multipart/form-data') {
-      return parseMultipartFormData(request);
+      return _parseMultipartFormData(request);
     }
 
     throw Exception("Unsupported Content-Type: $mimeType");
   }
 
-  Future<(Map<String, dynamic>, Map<String, dynamic>)> parseMultipartFormData(
+  Future<(Map<String, dynamic>, Map<String, dynamic>)> _parseMultipartFormData(
       HttpRequest request) async {
     final contentType = request.headers.contentType;
     final boundary = contentType?.parameters['boundary'];
