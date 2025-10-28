@@ -176,25 +176,22 @@ class Handler {
       final data = response.data;
 
       if (data is File) {
-        await data.openRead().pipe(rawResponse);
+        await rawResponse.addStream(data.openRead());
       } else if (data is Stream<List<int>>) {
-        await data.pipe(rawResponse);
+        await rawResponse.addStream(data);
       } else if (data is List<int>) {
         rawResponse.add(data);
-        await rawResponse.close();
       } else if (data is String) {
         rawResponse.write(data);
-        await rawResponse.close();
       } else {
-        final encoded = jsonEncode(
+        rawResponse.write(jsonEncode(
           data,
           toEncodable: (nonEncodable) => nonEncodable is DateTime
               ? nonEncodable.toIso8601String()
               : nonEncodable.toString(),
-        );
-        rawResponse.write(encoded);
-        await rawResponse.close();
+        ));
       }
+      await rawResponse.close();
     } catch (e, st) {
       await _sendErrorResponse(request, HttpStatus.internalServerError, e, st);
       return;
