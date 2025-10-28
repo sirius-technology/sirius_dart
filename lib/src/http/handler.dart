@@ -173,17 +173,26 @@ class Handler {
 
       rawResponse.statusCode = response.statusCode;
 
-      if (response.data is File) {
-        final file = response.data as File;
-        // Stream file to response and close
-        await file.openRead().pipe(rawResponse);
+      final data = response.data;
+
+      if (data is File) {
+        await data.openRead().pipe(rawResponse);
+      } else if (data is Stream<List<int>>) {
+        await data.pipe(rawResponse);
+      } else if (data is List<int>) {
+        rawResponse.add(data);
+        await rawResponse.close();
+      } else if (data is String) {
+        rawResponse.write(data);
+        await rawResponse.close();
       } else {
-        rawResponse.write(jsonEncode(
-          response.data,
+        final encoded = jsonEncode(
+          data,
           toEncodable: (nonEncodable) => nonEncodable is DateTime
               ? nonEncodable.toIso8601String()
               : nonEncodable.toString(),
-        ));
+        );
+        rawResponse.write(encoded);
         await rawResponse.close();
       }
     } catch (e, st) {

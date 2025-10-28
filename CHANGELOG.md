@@ -1,3 +1,6 @@
+## 2.3.9
+- 🧹 Minor internal cleanup and better error handling during file/stream writes.
+
 ## 2.3.8
 - 📦 Added `Response.sendFile()` for serving files directly through HTTP. Supports automatic MIME detection, inline display, and file downloads with custom headers.
 - ⚙️ Improved internal response handling in Handler to support file streaming without memory overflow.
