@@ -80,6 +80,27 @@ class Request {
   /// ```
   Map<String, dynamic> get getBody => _body?.$1 ?? const {};
 
+  /// Indicates whether the request contains a parsed body.
+  ///
+  /// Returns `true` if the request includes a JSON body or was successfully
+  /// parsed into `_body`. Returns `false` when:
+  /// - No body was sent with the request, or
+  /// - The body could not be parsed as JSON.
+  ///
+  /// Useful when you need to differentiate between an empty body and an
+  /// intentionally empty JSON object `{}`.
+  ///
+  /// ### Example
+  /// ```dart
+  /// if (request.hasBody) {
+  ///   final data = request.getBody;
+  ///   // Handle data
+  /// } else {
+  ///   // No body provided
+  /// }
+  /// ```
+  bool get hasBody => _body != null;
+
   /// Returns the value from the JSON body for a given [key].
   ///
   /// ### Example
@@ -275,10 +296,4 @@ class Request {
         ...allQueryParams,
         ...(_body?.$1 ?? {}), // highest priority
       };
-
-  // Map<String, dynamic> get validationFields => {
-  //   'PATH_VAR' : _pathVariables,
-  //   'QUERY_PARAM' : allQueryParams,
-  //   'BODY' : _body
-  // };
 }
