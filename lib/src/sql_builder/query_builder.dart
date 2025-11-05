@@ -34,26 +34,26 @@ class QueryBuilder {
     return this;
   }
 
-  QueryBuilder where(String column, dynamic value) {
+  QueryBuilder where(String column, Object? value) {
     _wheres.add("$column = $placeholder");
     _values.add(value);
     return this;
   }
 
-  QueryBuilder orWhere(String column, dynamic value) {
+  QueryBuilder orWhere(String column, Object? value) {
     _orWheres.add("$column = $placeholder");
     _values.add(value);
     return this;
   }
 
-  QueryBuilder whereIn(String column, List<dynamic> values) {
+  QueryBuilder whereIn(String column, List<Object?> values) {
     final placeholders = List.filled(values.length, placeholder).join(', ');
     _wheres.add("$column IN ($placeholders)");
     _values.addAll(values);
     return this;
   }
 
-  QueryBuilder whereNotIn(String column, List<dynamic> values) {
+  QueryBuilder whereNotIn(String column, List<Object?> values) {
     final placeholders = List.filled(values.length, placeholder).join(', ');
     _wheres.add("$column NOT IN ($placeholders)");
     _values.addAll(values);
@@ -135,7 +135,7 @@ class QueryBuilder {
     return (query: "$query;", values: _values);
   }
 
-  ({String query, List<Object?> values}) insert(Map<String, dynamic> values) {
+  ({String query, List<Object?> values}) insert(Map<String, Object?> values) {
     if (values.isEmpty) throw Exception("No insert values provided.");
 
     final columns = <String>[];
@@ -198,7 +198,7 @@ class QueryBuilder {
     return (query: query, values: allValues);
   }
 
-  ({String query, List<Object?> values}) update(Map<String, dynamic> values) {
+  ({String query, List<Object?> values}) update(Map<String, Object?> values) {
     if (values.isEmpty) throw Exception("No update values provided.");
 
     final setParts = <String>[];

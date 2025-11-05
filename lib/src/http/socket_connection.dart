@@ -6,10 +6,10 @@ import 'package:sirius_backend/src/helpers/create_randoms.dart';
 import 'package:sirius_backend/src/helpers/logging.dart';
 
 /// Callback function type for handling socket events.
-typedef WebSocketFunction = void Function(dynamic data);
+typedef WebSocketFunction = void Function(Object? data);
 
 /// Middleware function type for intercepting and validating events.
-typedef SocketMiddlewareFunction = bool Function(String event, dynamic data);
+typedef SocketMiddlewareFunction = bool Function(String event, Object? data);
 
 /// A wrapper for managing WebSocket connections using event-based communication,
 /// similar to Socket.IO.
@@ -169,7 +169,7 @@ class SocketConnection {
   /// ```dart
   /// socket.sendEvent("notification", {"title": "New order"});
   /// ```
-  void sendEvent(String event, dynamic data) {
+  void sendEvent(String event, Object? data) {
     final message = jsonEncode({"event": event, "data": data});
     _webSocket.add(message);
   }

@@ -4,6 +4,22 @@ Future<void> main() async {
   Sirius app = Sirius();
 
   app.post('test', (req) async {
+    final rules = {
+      'name': ValidationRules(
+          callback: callback((val) {
+        print('value : $val');
+        return false;
+      }, message: 'This is a message'))
+    };
+
+    final validator = Validator(req, rules);
+
+    if (!validator.validate()) {
+      return Response.sendJson({
+        'errors': validator.getError.value,
+      }, statusCode: 400);
+    }
+
     return Response.sendJson({
       'hasBody': req.hasBody,
       'body': req.getBody,

@@ -223,7 +223,7 @@ class Request {
   /// ```
   String? headerValue(String key) => _headers[key.toLowerCase()];
 
-  dynamic _contextData;
+  Object? _contextData;
 
   /// Stores custom data to be passed from middleware to later middleware
   /// or request handlers during the lifecycle of a single request.
@@ -237,7 +237,7 @@ class Request {
   /// ```dart
   /// request.setContextData = {'userId': 42, 'role': 'admin'};
   /// ```
-  set setContextData(dynamic data) {
+  set setContextData(Object? data) {
     _contextData = data;
   }
 
@@ -251,7 +251,7 @@ class Request {
   /// final data = request.getContextData;
   /// final userId = data?['userId'];
   /// ```
-  dynamic get getContextData => _contextData;
+  Object? get getContextData => _contextData;
 
   /// Returns the HTTP method of the request (e.g., GET, POST).
   ///

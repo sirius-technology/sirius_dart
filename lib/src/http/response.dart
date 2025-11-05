@@ -42,16 +42,16 @@ class Response {
   ///   "Cache-Control": "no-cache"
   /// }
   /// ```
-  Map<String, dynamic> headers = {};
+  Map<String, String> headers = {};
 
   /// Internal data store for passing contextual metadata through the response.
   ///
   /// This is useful for passing additional data between middleware layers or handlers,
   /// without sending it in the actual HTTP response body.
-  dynamic _contextData;
+  Object? _contextData;
 
   /// Retrieves the internal context data passed during processing.
-  dynamic get getContextData => _contextData;
+  Object? get getContextData => _contextData;
 
   /// Sets extra internal context data to this response.
   ///
@@ -59,7 +59,7 @@ class Response {
   /// ```dart
   /// response.setContextData = {'user': currentUser};
   /// ```
-  set setContextData(dynamic data) {
+  set setContextData(Object? data) {
     _contextData = data;
   }
 
@@ -108,7 +108,7 @@ class Response {
   /// return Response.send({"message": "Data saved"});
   /// ```
   static Response send(
-    dynamic data, {
+    Object? data, {
     int statusCode = HttpStatus.ok,
     Map<String, String>? headers,
     void Function(HttpHeaders headers)? overrideHeaders,
@@ -140,7 +140,7 @@ class Response {
   /// );
   /// ```
   static Response sendJson(
-    dynamic data, {
+    Object? data, {
     int statusCode = HttpStatus.ok,
     Map<String, String>? headers,
     void Function(HttpHeaders headers)? overrideHeaders,

@@ -50,10 +50,10 @@ class ValidationRules {
   (DateTimeFormat?, String?)? validDate;
 
   /// Field must be one of the provided options.
-  (List<dynamic>, String?)? inList;
+  (List<Object>, String?)? inList;
 
   /// Field must be one of the provided options.
-  (List<dynamic>, String?)? notInList;
+  (List<Object>, String?)? notInList;
 
   /// Defines nested validation rules for child fields when the current field is a map.
   ///
@@ -91,7 +91,7 @@ class ValidationRules {
   (String, String?)? regex;
 
   /// Custom validation using a callback.
-  (bool Function(dynamic value), String)? callback;
+  (bool Function(Object? value), String)? callback;
 
   /// Marks that the rule applies to each element in a list.
   ///
@@ -248,7 +248,7 @@ class ValidationRules {
 ///
 /// - [values]: A list of allowed values.
 /// - [message]: Optional custom error message to display when validation fails.
-(List<dynamic>, String?) inList(List<dynamic> values, {String? message}) =>
+(List<Object>, String?) inList(List<Object> values, {String? message}) =>
     (values, message);
 
 /// Validates that the value does **not** exist within the provided list of disallowed values.
@@ -260,7 +260,7 @@ class ValidationRules {
 ///
 /// - [values]: A list of disallowed values.
 /// - [message]: Optional custom error message to display when validation fails.
-(List<dynamic>, String?) notInList(List<dynamic> values, {String? message}) =>
+(List<Object>, String?) notInList(List<Object> values, {String? message}) =>
     (values, message);
 
 /// Validates a custom regular expression.
@@ -278,7 +278,7 @@ class ValidationRules {
 /// ```dart
 /// callback((value) => value == "admin", "Only 'admin' is allowed")
 /// ```
-(bool Function(dynamic value), String) callback(
-        bool Function(dynamic value) validate,
+(bool Function(Object? value), String) callback(
+        bool Function(Object? value) validate,
         {required String message}) =>
     (validate, message);
