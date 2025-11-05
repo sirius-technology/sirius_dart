@@ -48,10 +48,10 @@ class Response {
   ///
   /// This is useful for passing additional data between middleware layers or handlers,
   /// without sending it in the actual HTTP response body.
-  Object? _contextData;
+  dynamic _contextData;
 
   /// Retrieves the internal context data passed during processing.
-  Object? get getContextData => _contextData;
+  dynamic get getContextData => _contextData;
 
   /// Sets extra internal context data to this response.
   ///
@@ -59,7 +59,7 @@ class Response {
   /// ```dart
   /// response.setContextData = {'user': currentUser};
   /// ```
-  set setContextData(Object? data) {
+  set setContextData(dynamic data) {
     _contextData = data;
   }
 
