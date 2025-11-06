@@ -6,6 +6,7 @@ class QueryBuilder {
   static String placeholder = "?";
 
   final List<String> _selects = [];
+  final List<RawSql> _selectRaw = [];
   final List<String> _joins = [];
   final List<String> _wheres = [];
   final List<String> _orWheres = [];
@@ -21,6 +22,11 @@ class QueryBuilder {
 
   QueryBuilder select(List<String> columns) {
     _selects.addAll(columns);
+    return this;
+  }
+
+  QueryBuilder selectRaw(List<RawSql> columns) {
+    _selectRaw.addAll(columns);
     return this;
   }
 
@@ -119,7 +125,7 @@ class QueryBuilder {
   }
 
   ({String query, List<Object?> values}) getAll() {
-    final selectClause = _selects.isEmpty ? '*' : _selects.join(', ');
+    final selectClause = _buildSelectClause();
     String query = "SELECT $selectClause FROM $_table";
 
     if (_joins.isNotEmpty) query += ' ${_joins.join(' ')}';
@@ -241,6 +247,19 @@ class QueryBuilder {
     if (_orLikes.isNotEmpty) conditions.add("(${_orLikes.join(" OR ")})");
 
     return conditions.join(" AND ");
+  }
+
+  String _buildSelectClause() {
+    final parts = <String>[];
+
+    if (_selects.isNotEmpty) parts.addAll(_selects);
+
+    for (var raw in _selectRaw) {
+      parts.add(raw.toString());
+      _values.addAll(raw.bindings);
+    }
+
+    return parts.isEmpty ? '*' : parts.join(', ');
   }
 }
 
