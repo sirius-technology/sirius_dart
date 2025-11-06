@@ -1,3 +1,6 @@
+## 2.3.10
+- 🧹 Minor internal cleanup and optimizations.
+
 ## 2.3.9
 - 🧹 Minor internal cleanup and better error handling during file/stream writes.
 
