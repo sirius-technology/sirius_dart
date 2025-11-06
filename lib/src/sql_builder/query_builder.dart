@@ -35,8 +35,9 @@ class QueryBuilder {
     return this;
   }
 
-  QueryBuilder whereRaw(String rawCondition) {
-    _wheres.add(rawCondition);
+  QueryBuilder whereRaw(RawSql condition) {
+    _wheres.add(condition.value);
+    _values.addAll(condition.bindings);
     return this;
   }
 
