@@ -415,6 +415,28 @@ class Validator {
       }
     }
 
+    // In List Validation
+    if (rule.inList != null) {
+      if (!rule.inList!.$1.contains(value)) {
+        return (
+          field,
+          rule.inList!.$2 ??
+              "$field should be one of: ${rule.inList!.$1.join(', ')}"
+        );
+      }
+    }
+
+    // Not In List Validation
+    if (rule.notInList != null) {
+      if (rule.notInList!.$1.contains(value)) {
+        return (
+          field,
+          rule.notInList!.$2 ??
+              "$field must not be one of: ${rule.notInList!.$1.join(', ')}"
+        );
+      }
+    }
+
     // Custom Regex Validation
     if (rule.regex != null) {
       RegExp customRegex = RegExp(rule.regex!.$1);
