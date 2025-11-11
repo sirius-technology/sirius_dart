@@ -38,4 +38,5 @@ export 'inbuilds/logger_handler.dart';
 // Am not using HttpResponse for sending response
 // Not able to send any type of file in response
 
+// add banner image in readme.md file like like others package in pub.dev : serinus: ^2.0.1, get: ^4.7.2
 

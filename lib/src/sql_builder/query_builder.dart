@@ -25,7 +25,7 @@ class QueryBuilder {
   }
 
   QueryBuilder selectRaw(RawSql columns) {
-    _selects.add(columns.value);
+    _selects.add(columns.sql);
     _values.addAll(columns.bindings);
     return this;
   }
@@ -36,7 +36,7 @@ class QueryBuilder {
   }
 
   QueryBuilder whereRaw(RawSql condition) {
-    _wheres.add(condition.value);
+    _wheres.add(condition.sql);
     _values.addAll(condition.bindings);
     return this;
   }
@@ -125,7 +125,24 @@ class QueryBuilder {
     return (query: result.query, values: result.values);
   }
 
-  ({String query, List<Object?> values}) getAll() {
+  // ({String query, List<Object?> values}) getAll({int? limit, int? offset}) {
+  //   final selectClause = _selects.isEmpty ? '*' : _selects.join(', ');
+  //   String query = "SELECT $selectClause FROM $_table";
+
+  //   if (_joins.isNotEmpty) query += ' ${_joins.join(' ')}';
+
+  //   final conditions = _combineConditions();
+  //   if (conditions.isNotEmpty) query += " WHERE $conditions";
+
+  //   if (_groupBys.isNotEmpty) query += " GROUP BY ${_groupBys.join(', ')}";
+  //   if (_having != null) query += " HAVING $_having";
+  //   if (_orderBy != null) query += " ORDER BY $_orderBy";
+  //   if (_limit != null) query += " LIMIT $_limit";
+
+  //   return (query: "$query;", values: _values);
+  // }
+
+  ({String query, List<Object?> values}) getAll({int? limit, int? offset}) {
     final selectClause = _selects.isEmpty ? '*' : _selects.join(', ');
     String query = "SELECT $selectClause FROM $_table";
 
@@ -137,7 +154,17 @@ class QueryBuilder {
     if (_groupBys.isNotEmpty) query += " GROUP BY ${_groupBys.join(', ')}";
     if (_having != null) query += " HAVING $_having";
     if (_orderBy != null) query += " ORDER BY $_orderBy";
-    if (_limit != null) query += " LIMIT $_limit";
+
+    // Override builder limit() and offset()
+    if (limit != null) {
+      query += " LIMIT $limit";
+    } else if (_limit != null) {
+      query += " LIMIT $_limit";
+    }
+
+    if (offset != null) {
+      query += " OFFSET $offset";
+    }
 
     return (query: "$query;", values: _values);
   }
@@ -271,11 +298,11 @@ extension QueryBuilderCount on QueryBuilder {
 }
 
 class RawSql {
-  final String value;
+  final String sql;
   final List<Object?> bindings;
 
-  const RawSql(this.value, [this.bindings = const []]);
+  const RawSql(this.sql, [this.bindings = const []]);
 
   @override
-  String toString() => value;
+  String toString() => sql;
 }
