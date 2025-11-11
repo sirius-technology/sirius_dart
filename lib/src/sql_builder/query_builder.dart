@@ -89,6 +89,12 @@ class QueryBuilder {
     return this;
   }
 
+  QueryBuilder havingRaw(RawSql condition) {
+    _having = condition.sql;
+    _values.addAll(condition.bindings);
+    return this;
+  }
+
   QueryBuilder orderBy(String column, {bool descending = false}) {
     _orderBy = "$column ${descending ? 'DESC' : 'ASC'}";
     return this;
