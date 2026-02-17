@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:sirius_backend/sirius_backend.dart';
 
 void main() async {
@@ -22,7 +24,8 @@ void main() async {
   });
 
   // WebSocket route
-  sirius.webSocket('/chat', (request, socketConn) {
+  sirius.webSocket('/chat', (request) async {
+    final socketConn = await request.upgradeToWebSocket();
     final connId = socketConn.getId;
     print("Client connected: $connId");
 
@@ -101,17 +104,14 @@ class UserController {
 // Timer Wrapper-Middleware
 class TimerWrapper extends Wrapper {
   @override
-  Future<Response> handle(
-    Request request,
-    Future<Response> Function() nextHandler,
-  ) async {
+  FutureOr<Response> handle(request, nextHandler) async {
     final start = DateTime.now();
     final response = await nextHandler();
     final end = DateTime.now();
     print(
-        "[TIMER] ${request.method} ${request.path} ${response.statusCode} ${end.difference(start).inMilliseconds}ms");
+        "[TIMER] ${request.method} ${request.path} ${response?.statusCode} ${end.difference(start).inMilliseconds}ms");
 
-    response.addHeader("Content-Type", "application/json");
-    return response;
+    response?.addHeader("Content-Type", "application/json");
+    return response ?? Response.send("Error");
   }
 }

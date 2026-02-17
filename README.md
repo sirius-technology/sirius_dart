@@ -20,7 +20,7 @@ It features powerful routing, composable wrapper middlewares, validation, and li
 
 ```yaml
 dependencies:
-  sirius_backend: ^2.3.10
+  sirius_backend: ^2.4.0
 ````
 
 Then run:
@@ -75,7 +75,7 @@ Wrappers allow full control over the request lifecycle for tasks like logging, a
 ```dart
 class TimerWrapper extends Wrapper {
   @override
-  Future<Response> handle(Request request, Future<Response> Function() nextHandler) async {
+  FutureOr<Response?> handle(Request request, FutureOr<Response?> Function() nextHandler) async {
     final start = DateTime.now();
     final response = await nextHandler();
     final end = DateTime.now();
@@ -214,7 +214,8 @@ return Response.send({'ok': true}, overrideHeaders: (headers) {
 ## 🔄 WebSocket Support
 
 ```dart
-sirius.webSocket('/chat', (request, socketConn) {
+sirius.webSocket('/chat', (request) async {
+  final socketConn = await request.upgradeToWebSocket();
   final connId = socketConn.getId;
   print("Client connected: $connId");
 

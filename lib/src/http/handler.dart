@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:sirius_backend/sirius_backend.dart';
@@ -5,83 +6,29 @@ import 'package:sirius_backend/src/helpers/formatting.dart';
 import 'package:sirius_backend/src/helpers/logging.dart';
 import '../constants/constant_methods.dart';
 
-typedef WrapperFunction = Future<Response> Function(
-    Request request, Future<Response> Function() nextHandler);
+typedef WrapperFunction = FutureOr<Response?> Function(
+    Request request, FutureOr<Response?> Function() nextHandler);
 
-typedef HttpHandlerFunction = Future<Response> Function(Request request);
+typedef HandlerFunction = FutureOr<Response?> Function(Request request);
 
-typedef SocketHandlerFunction = void Function(
-    Request request, SocketConnection webSocket);
-
-typedef ExceptionHandlerFunction = Future<Response> Function(Request request,
+typedef ExceptionHandlerFunction = FutureOr<Response> Function(Request request,
     Response response, int statusCode, Object exception, StackTrace stackTrace);
 
-class Handler {
-  final Map<String, Map<String, (List<WrapperFunction>, HttpHandlerFunction)>>
-      _mainRoutes = {};
+typedef RouteDataType
+    = Map<String, Map<String, (List<WrapperFunction>, HandlerFunction?)>>;
 
-  final Map<String, SocketHandlerFunction> _mainSocketRoutes = {};
+class Handler {
+  final RouteDataType _mainRoutes = {};
 
   ExceptionHandlerFunction? _exceptionHandler;
 
   void registerRoutes(
-      Map<String, Map<String, (List<WrapperFunction>, HttpHandlerFunction)>>
-          routesMap,
-      Map<String, SocketHandlerFunction> socketRoutesMap,
-      ExceptionHandlerFunction? exceptionHandler) {
+      RouteDataType routesMap, ExceptionHandlerFunction? exceptionHandler) {
     _mainRoutes.addAll(routesMap);
-    _mainSocketRoutes.addAll(socketRoutesMap);
-
     _exceptionHandler = exceptionHandler;
   }
 
-  void handleRequest(HttpRequest request) {
-    if (WebSocketTransformer.isUpgradeRequest(request)) {
-      _handleSocketRequest(request);
-    } else {
-      _handleHttpRequest(request);
-    }
-  }
-
-  void _handleSocketRequest(HttpRequest request) {
-    final uriPath = request.uri.path;
-    Map<String, String> pathVariables = {};
-    void Function(Request request, SocketConnection webSocket)? handler =
-        _mainSocketRoutes[uriPath];
-
-    if (handler == null) {
-      for (var val in _mainSocketRoutes.entries) {
-        Map<String, String>? matches = _matchRoute(val.key, uriPath);
-        if (matches != null) {
-          handler = val.value;
-          pathVariables = matches;
-          break;
-        }
-      }
-
-      if (handler == null) {
-        _sendErrorResponse(
-            Request(request, pathVariables,
-                (<String, dynamic>{}, <String, File>{})),
-            HttpStatus.notFound,
-            Exception("Path not found"),
-            StackTrace.current);
-        return;
-      }
-    }
-
-    Request webSocketRequest = Request(
-        request, pathVariables, (<String, dynamic>{}, <String, File>{}));
-
-    WebSocketTransformer.upgrade(request).then((WebSocket webSocket) async {
-      handler!(webSocketRequest, SocketConnection(webSocket));
-    }).catchError((err, stackTrace) {
-      _sendErrorResponse(
-          webSocketRequest, HttpStatus.internalServerError, err, stackTrace);
-    });
-  }
-
-  Future<void> _handleHttpRequest(HttpRequest request) async {
+  Future<void> handleRequest(HttpRequest request) async {
     final String uriPath = request.uri.path;
     final String method = request.method;
     (Map<String, dynamic>, Map<String, dynamic>)? body;
@@ -102,11 +49,11 @@ class Handler {
       }
     }
 
-    HttpHandlerFunction? mainHandler = _mainRoutes[method]![uriPath]?.$2;
+    HandlerFunction? handler = _mainRoutes[method]![uriPath]?.$2;
 
     List<WrapperFunction> wrapperList = _mainRoutes[method]![uriPath]?.$1 ?? [];
 
-    if (mainHandler == null) {
+    if (handler == null) {
       final routeEntries = _mainRoutes[method];
 
       if (routeEntries != null) {
@@ -114,14 +61,14 @@ class Handler {
           Map<String, String>? matches = _matchRoute(val.key, uriPath);
           if (matches != null) {
             wrapperList = val.value.$1;
-            mainHandler = val.value.$2;
+            handler = val.value.$2;
             pathVariables = matches;
             break;
           }
         }
       }
 
-      if (mainHandler == null) {
+      if (handler == null) {
         _sendErrorResponse(
             Request(request, pathVariables, body),
             HttpStatus.notFound,
@@ -134,23 +81,19 @@ class Handler {
     Request newRequest = Request(request, pathVariables, body);
 
     try {
-      Response response;
+      Response? response;
 
-      // creating chain for wrapper middleware
-      if (wrapperList.isNotEmpty) {
-        Future<Response> Function() composed = wrapperList.reversed
-            .fold<Future<Response> Function()>(() => mainHandler!(newRequest),
-                (next, wrapper) {
-          return () => wrapper(newRequest, next);
-        });
+      FutureOr<Response?> Function() composed = wrapperList.reversed
+          .fold<FutureOr<Response?> Function()>(() => handler!(newRequest),
+              (next, wrapper) {
+        return () => wrapper(newRequest, next);
+      });
 
-        response = await composed();
-      } else {
-        // execute without wrapper middleware
-        response = await mainHandler(newRequest);
+      response = await composed();
+
+      if (response != null) {
+        _sendSuccessResponse(newRequest, response);
       }
-
-      _sendSuccessResponse(newRequest, response);
     } catch (err, stackTrace) {
       _sendErrorResponse(
           newRequest, HttpStatus.internalServerError, err, stackTrace);

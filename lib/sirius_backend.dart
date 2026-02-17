@@ -11,7 +11,7 @@ export 'src/http/validator.dart';
 export 'src/http/validation_rules.dart';
 export 'src/abstract_classes/wrapper.dart';
 export 'src/abstract_classes/sirius_exception.dart';
-export 'src/http/socket_connection.dart';
+export 'src/http/ws_connection.dart';
 
 export 'src/sql_builder/query_builder.dart';
 
@@ -19,7 +19,6 @@ export 'inbuilds/cors_handler.dart';
 export 'inbuilds/logger_handler.dart';
 
 // TODO: Export any libraries intended for clients of this package.
-
 
 // apply middleware in only selected methods
 
@@ -40,3 +39,31 @@ export 'inbuilds/logger_handler.dart';
 
 // add banner image in readme.md file like like others package in pub.dev : serinus: ^2.0.1, get: ^4.7.2
 
+// In Sirius_backend 3.0.0 - new flow of backend with context | need to remove request, response and other things and add context
+
+
+
+
+// Need WSManager for managing websockets
+
+// 🚀 Architectural Suggestion (Very Important)
+
+// You should eventually create:
+
+// class SocketManager {
+//   final Map<String, WsConnection> _connections = {};
+// }
+
+// So you can support:
+
+// broadcast
+
+// rooms
+
+// find by id
+
+// authentication tracking
+
+// connection count
+
+// Right now your WsConnection is good — but you need a manager for scaling.

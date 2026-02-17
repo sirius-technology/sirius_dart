@@ -1,29 +1,13 @@
+import 'dart:async';
+
 import 'package:sirius_backend/sirius_backend.dart';
 
 Future<void> main() async {
   Sirius app = Sirius();
 
-  app.post('test', (req) async {
-    final rules = {
-      'name': ValidationRules(
-          callback: callback((val) {
-        print('value : $val');
-        return false;
-      }, message: 'This is a message'))
-    };
-
-    final validator = Validator(req, rules);
-
-    if (!validator.validate()) {
-      return Response.sendJson({
-        'errors': validator.getError.value,
-      }, statusCode: 400);
-    }
-
-    return Response.sendJson({
-      'hasBody': req.hasBody,
-      'body': req.getBody,
-    });
+  app.wrap((req, next) {
+    print('MIDDLEWARE');
+    return next();
   });
 
   // app.get('file', (req) async {
@@ -32,7 +16,21 @@ Future<void> main() async {
   //       inline: true);
   // });
 
+  app.get('path', (req) {
+    return Response.send('data');
+  });
+
+  app.webSocket('ws', (req) async {
+    final ws = await req.upgradeToWebSocket();
+    ws.onData((data) {
+      ws.sendData('From Server : $data');
+    });
+    return null;
+  });
+
   app.start(callback: (server) {
     print("Server is running");
   });
 }
+
+// NEED TO MAKE WEBSOCKET CONN CLASS TO ALOW DEVELOPERS TO CONNECT WEBSOCKET INSIDE HANDLER

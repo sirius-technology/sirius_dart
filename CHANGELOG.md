@@ -1,3 +1,10 @@
+## 2.4.0
+- 🔌 Reworked WebSocket connection flow for cleaner lifecycle handling and improved reliability.
+- ⬆️ Added `final socketConn = await request.upgradeToWebSocket();` method to allow direct WebSocket upgrades from the request object.
+- 🧠 Refactored internal WebSocket routing logic for better maintainability and extensibility.
+- ⚡ Performance optimizations for WebSocket handling and event processing.
+- 🧩 Wrappers (middlewares) are now fully supported for WebSocket connections, enabling authentication, logging, validation, and other interception logic before upgrade.
+
 ## 2.3.10
 - 🧹 Minor internal cleanup and optimizations.
 

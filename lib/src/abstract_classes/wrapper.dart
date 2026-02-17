@@ -1,47 +1,104 @@
+import 'dart:async';
+
 import 'package:sirius_backend/sirius_backend.dart';
 
-/// An abstract class representing a middleware wrapper in the Sirius framework.
+/// ---------------------------------------------------------------------------
+/// Wrapper Middleware
+/// ---------------------------------------------------------------------------
 ///
-/// A `Wrapper` allows you to intercept and process an incoming HTTP [Request]
-/// before it reaches the final route handler, and/or manipulate the resulting [Response].
+/// Base class for creating middleware wrappers in the Sirius framework.
 ///
-/// You can use wrappers for tasks like:
-/// - Authentication / Authorization
-/// - Logging
-/// - CORS headers
-/// - Validation
-/// - Error handling
+/// A [Wrapper] intercepts incoming HTTP requests **before** they reach the
+/// final route handler and may also inspect or modify the outgoing [Response].
 ///
-/// ### Example:
+/// Wrappers are commonly used for:
+/// • Authentication / Authorization
+/// • Logging & monitoring
+/// • CORS handling
+/// • Input validation
+/// • Rate limiting
+/// • Error handling
+///
+/// ---------------------------------------------------------------------------
+/// 🧠 Execution Flow
+/// ---------------------------------------------------------------------------
+///
+/// ```text
+/// Request → Wrapper1 → Wrapper2 → Route Handler → Response → Wrapper2 → Wrapper1
+/// ```
+///
+/// Each wrapper controls whether execution continues by calling [nextHandler].
+///
+/// ---------------------------------------------------------------------------
+/// ⛔ Short-Circuiting
+/// ---------------------------------------------------------------------------
+///
+/// A wrapper may return a [Response] **without** calling [nextHandler]
+/// to immediately stop execution.
+///
+/// Example:
+/// ```dart
+/// if (!isAuthorized) {
+///   return Response.sendJson({'error': 'Unauthorized'}, statusCode: 401);
+/// }
+/// ```
+///
+/// ---------------------------------------------------------------------------
+/// ✅ Continue Execution
+/// ---------------------------------------------------------------------------
+///
+/// To allow processing to continue to the next wrapper or handler:
+///
+/// ```dart
+/// return await nextHandler();
+/// ```
+///
+/// ---------------------------------------------------------------------------
+/// 🧪 Example Implementation
+/// ---------------------------------------------------------------------------
+///
 /// ```dart
 /// class AuthWrapper extends Wrapper {
 ///   @override
-///   Future<Response> handle(Request request, Future<Response> Function() nextHandler) async {
+///   FutureOr<Response?> handle(
+///     Request request,
+///     FutureOr<Response?> Function() nextHandler,
+///   ) async {
 ///     if (!request.headers.containsKey('Authorization')) {
 ///       return Response.sendJson({'error': 'Unauthorized'}, statusCode: 401);
 ///     }
+///
 ///     return await nextHandler();
 ///   }
 /// }
 /// ```
+///
+/// ---------------------------------------------------------------------------
+/// ⚠ Important Rules
+/// ---------------------------------------------------------------------------
+///
+/// • Always return a [Response] or the result of [nextHandler()]
+/// • Do NOT call [nextHandler] more than once
+/// • You may modify the request before forwarding
+/// • You may modify the response after awaiting nextHandler
+/// • Returning `null` means no response was produced
+///
+/// ---------------------------------------------------------------------------
 abstract class Wrapper {
-  /// Intercepts the [request] before it reaches the route handler and optionally
-  /// modifies or short-circuits the flow by returning a [Response] early.
+  /// Processes an incoming [request] and controls execution flow.
   ///
-  /// If processing should continue, it must call [nextHandler] to pass control
-  /// to the next wrapper or route handler.
+  /// Parameters:
+  /// • [request] → Incoming HTTP request
+  /// • [nextHandler] → Executes next wrapper or final route handler
   ///
-  /// - [request] → The incoming HTTP request object
-  /// - [nextHandler] → A function that proceeds to the next handler or wrapper
+  /// Returns:
+  /// • a [Response] to send immediately
+  /// • or result of [nextHandler()]
+  /// • or `null` if nothing handled the request
   ///
-  /// Returns a [Response] object, either directly or from the next handler.
-  ///
-  /// ### Example use case:
-  /// ```dart
-  /// return await nextHandler(); // continues to next middleware or route
-  /// ```
-  Future<Response> handle(
+  /// This method may be synchronous or asynchronous.
+  FutureOr<Response?> handle(
     Request request,
-    Future<Response> Function() nextHandler,
+    FutureOr<Response?> Function() nextHandler,
   );
 }

@@ -4,27 +4,119 @@ import 'package:sirius_backend/src/constants/constant_methods.dart';
 import 'package:sirius_backend/src/helpers/logging.dart';
 import 'package:sirius_backend/src/http/handler.dart';
 
-/// Sirius is a lightweight and extensible HTTP and WebSocket server framework for Dart.
+/// ---------------------------------------------------------------------------
+/// Sirius
+/// ---------------------------------------------------------------------------
 ///
-/// It supports middleware, route grouping, and request-response management.
-/// Built to resemble modern web frameworks like Express.js, it is simple yet powerful.
+/// **Sirius** is a lightweight, extensible HTTP + WebSocket backend framework
+/// for Dart designed for performance, clarity, and flexibility.
 ///
-/// ### Example: Basic HTTP server
+/// It provides a minimal core while still supporting modern backend features:
+///
+/// • Routing by HTTP method
+/// • Route groups (prefix-based)
+/// • Middleware wrappers
+/// • WebSocket endpoints
+/// • Structured handler pipeline
+/// • Graceful server lifecycle management
+///
+/// Sirius is intentionally designed to feel familiar to developers coming from
+/// frameworks like Express.js, Fastify, or Hono — while remaining purely Dart.
+///
+/// ---------------------------------------------------------------------------
+/// 🚀 Quick Start
+/// ---------------------------------------------------------------------------
 /// ```dart
-/// final sirius = Sirius();
+/// final app = Sirius();
 ///
-/// sirius.get('/hello', (req) async => Response.send('Hello World'));
+/// app.get('/hello', (req) async {
+///   return Response.send('Hello World');
+/// });
 ///
-/// await sirius.start(port: 3000);
+/// await app.start(port: 3000);
 /// ```
 ///
-/// ### Example: Grouped routes
+/// ---------------------------------------------------------------------------
+/// 📁 Route Groups
+/// ---------------------------------------------------------------------------
+/// Group routes under a shared prefix:
+///
 /// ```dart
-/// sirius.group('/api', (group) {
-///   group.get('/users', userController.getAll);
-///   group.post('/users', userController.create);
+/// app.group('/api', (api) {
+///   api.get('/users', userController.list);
+///   api.post('/users', userController.create);
 /// });
 /// ```
+///
+/// Final paths:
+/// ```
+/// /api/users
+/// ```
+///
+/// ---------------------------------------------------------------------------
+/// 🧩 Middleware Wrappers
+/// ---------------------------------------------------------------------------
+/// Wrappers behave like interceptors that wrap request execution.
+/// They are ideal for:
+///
+/// • Logging
+/// • Authentication
+/// • Metrics
+/// • Error handling
+/// • Timing measurement
+///
+/// ```dart
+/// app.wrap((handler) {
+///   return (req) async {
+///     final start = DateTime.now();
+///     final res = await handler(req);
+///     print(DateTime.now().difference(start));
+///     return res;
+///   };
+/// });
+/// ```
+///
+/// Wrappers are executed in order of registration.
+///
+/// ---------------------------------------------------------------------------
+/// 🔌 WebSocket Support
+/// ---------------------------------------------------------------------------
+/// WebSocket routes use the same routing system as HTTP routes
+/// but internally upgrade the request.
+///
+/// ```dart
+/// app.webSocket('/chat', (req) async {
+///   final ws = await req.upgradeToWebSocket();
+///
+///   ws.onEvent('message', (data) {
+///     ws.sendEvent('reply', {'echo': data});
+///   });
+/// });
+/// ```
+///
+/// ---------------------------------------------------------------------------
+/// 🧠 Internal Architecture Overview
+/// ---------------------------------------------------------------------------
+/// Internally Sirius stores routes as:
+///
+/// ```dart
+/// Map<method, Map<path, (wrappers, handler)>>
+/// ```
+///
+/// This allows:
+/// • O(1) method lookup
+/// • fast path matching
+/// • efficient wrapper execution
+///
+/// The heavy lifting is delegated to the internal [Handler] class.
+///
+/// ---------------------------------------------------------------------------
+/// ⚠ Lifecycle Notes
+/// ---------------------------------------------------------------------------
+/// • A single [Sirius] instance represents one server
+/// • Do not call `start()` twice
+/// • Always call `close()` for graceful shutdown in production
+/// ---------------------------------------------------------------------------
 class Sirius {
   /// Sirius is a lightweight and extensible HTTP and WebSocket server framework for Dart.
   ///
@@ -49,17 +141,31 @@ class Sirius {
   /// ```
   Sirius();
 
-  final Map<String, Map<String, (List<WrapperFunction>, HttpHandlerFunction)>>
-      _routesMap = {};
+  /// Route storage map.
+  ///
+  /// Structure:
+  /// ```dart
+  /// method -> path -> (wrappers, handler)
+  /// ```
+  final Map<
+      String,
+      Map<
+          String,
+          (
+            List<WrapperFunction>,
+            HandlerFunction?,
+          )>> _routesMap = {};
 
+  /// Global wrapper middleware applied to every route.
   final List<WrapperFunction> _wrapperList = [];
 
-  final Map<String, SocketHandlerFunction> _socketRoutesMap = {};
-
+  /// Core request handler responsible for dispatching routes.
   final Handler _handler = Handler();
 
+  /// Underlying Dart HTTP server instance.
   HttpServer? _server;
 
+  /// Ensures route path starts with `/`.
   String _autoAddSlash(String path) {
     if (path.startsWith("/")) {
       return path;
@@ -104,10 +210,6 @@ class Sirius {
         _routesMap[method]![fullPath] = entry.value;
       }
     });
-
-    siriusGroup._socketRoutesMap.forEach((path, function) {
-      _socketRoutesMap["$prefix$path"] = function;
-    });
   }
 
   /// Registers a GET route in the Sirius application.
@@ -125,7 +227,7 @@ class Sirius {
   /// - [wrappers] → Optional list of wrapper functions (middleware) applied only to this route
   void get(
     String path,
-    HttpHandlerFunction handler, {
+    HandlerFunction handler, {
     List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
@@ -135,7 +237,7 @@ class Sirius {
   /// Registers a POST route.
   void post(
     String path,
-    HttpHandlerFunction handler, {
+    HandlerFunction handler, {
     List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
@@ -145,7 +247,7 @@ class Sirius {
   /// Registers a PUT route.
   void put(
     String path,
-    HttpHandlerFunction handler, {
+    HandlerFunction handler, {
     List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
@@ -155,7 +257,7 @@ class Sirius {
   /// Registers a PATCH route.
   void patch(
     String path,
-    HttpHandlerFunction handler, {
+    HandlerFunction handler, {
     List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
@@ -165,7 +267,7 @@ class Sirius {
   /// Registers a DELETE route.
   void delete(
     String path,
-    HttpHandlerFunction handler, {
+    HandlerFunction handler, {
     List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
@@ -175,7 +277,7 @@ class Sirius {
   /// Registers a head route.
   void head(
     String path,
-    HttpHandlerFunction handler, {
+    HandlerFunction handler, {
     List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
@@ -185,17 +287,30 @@ class Sirius {
   /// Registers a options route.
   void options(
     String path,
-    HttpHandlerFunction handler, {
+    HandlerFunction handler, {
     List<WrapperFunction> wrappers = const [],
   }) {
     path = _autoAddSlash(path);
     _addRoute(path, OPTIONS, handler, wrappers);
   }
 
+  /// Registers a WebSocket endpoint.
+  ///
+  /// Internally uses GET method routing.
+  void webSocket(
+    String path,
+    HandlerFunction handler, {
+    List<WrapperFunction> wrappers = const [],
+  }) {
+    path = _autoAddSlash(path);
+    _addRoute(path, GET, handler, wrappers);
+  }
+
+  /// Internal route registration logic.
   void _addRoute(
     String path,
     String method,
-    HttpHandlerFunction mainHandler,
+    HandlerFunction? handler,
     List<WrapperFunction> routeWrappersList,
   ) {
     List<WrapperFunction> wrapperList = [
@@ -208,41 +323,56 @@ class Sirius {
         throw Exception(
             "method {$method} and path {$path} is already registered.");
       } else {
-        _routesMap[method]![path] = (wrapperList, mainHandler);
+        _routesMap[method]![path] = (wrapperList, handler);
       }
       return;
     }
-    _routesMap[method] = {path: (wrapperList, mainHandler)};
+    _routesMap[method] = {path: (wrapperList, handler)};
   }
 
-  /// Registers a WebSocket route.
+  // -------------------------------------------------------------------------
+  // Server Lifecycle
+  // -------------------------------------------------------------------------
+
+  /// Starts the HTTP server.
   ///
-  /// Example:
+  /// This initializes routing, binds the server to the specified port,
+  /// and begins listening for incoming HTTP requests.
+  ///
+  /// Parameters:
+  /// • [port] → Port number to listen on (default: `3333`)
+  /// • [callback] → Runs immediately after server starts
+  /// • [exceptionHandler] → Global exception handler for route errors
+  /// • [onClosed] → Called when server shuts down
+  /// • [onError] → Low‑level server errors
+  ///
+  /// -----------------------------------------------------------------------
+  /// Example — Basic Server Startup
+  /// -----------------------------------------------------------------------
   /// ```dart
-  /// sirius.webSocket('/chat', (WebSocketRequest request, WebSocket webSocket) {
-  ///   webSocket.listen((data) {
-  ///     webSocket.add("Echo: $data");
-  ///   });
-  /// });
+  /// final app = Sirius();
+  ///
+  /// app.get('/hello', (req) async => Response.send('Hello'));
+  ///
+  /// await app.start(
+  ///   port: 8080,
+  ///   callback: (server) {
+  ///     print('Server running on ${server.port}');
+  ///   },
+  /// );
   /// ```
-  void webSocket(String path, SocketHandlerFunction handler) {
-    path = _autoAddSlash(path);
-
-    if (_socketRoutesMap.containsKey(path)) {
-      throw Exception("WebSocket path {$path} is already registered.");
-    } else {
-      _socketRoutesMap[path] = handler;
-    }
-  }
-
-  /// Starts the HTTP server on the specified port.
   ///
-  /// Default port is `3333`. You can also provide a callback to run after startup.
-  ///
+  /// -----------------------------------------------------------------------
+  /// Example — Production Setup
+  /// -----------------------------------------------------------------------
   /// ```dart
-  /// await sirius.start(port: 8080, callback: (server) {
-  ///   print('Server running at ${server.address.address}:${server.port}');
-  /// });
+  /// await app.start(
+  ///   port: 80,
+  ///   exceptionHandler: (error, stack) {
+  ///     print('Global error: $error');
+  ///   },
+  ///   onClosed: () => print('Server stopped'),
+  /// );
   /// ```
   Future<void> start({
     int port = 3333,
@@ -252,7 +382,7 @@ class Sirius {
     Function? onError,
   }) async {
     _removeTempFolder();
-    _handler.registerRoutes(_routesMap, _socketRoutesMap, exceptionHandler);
+    _handler.registerRoutes(_routesMap, exceptionHandler);
 
     try {
       _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
@@ -290,6 +420,7 @@ class Sirius {
   /// Access the raw [HttpServer] instance.
   HttpServer? get rawHttpServer => _server;
 
+  /// Deletes temp directory created for uploaded files.
   Future<void> _removeTempFolder() async {
     final tempDir = Directory('temp');
 

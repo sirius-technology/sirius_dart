@@ -1,30 +1,98 @@
 import 'dart:io';
 
-/// Represents an HTTP request wrapper used in the Sirius backend framework.
+import 'package:sirius_backend/sirius_backend.dart';
+import 'package:sirius_backend/src/http/ws_connection.dart';
+
+/// ---------------------------------------------------------------------------
+/// Request
+/// ---------------------------------------------------------------------------
 ///
-/// Provides utilities to access path variables, query parameters, headers,
-/// and JSON request bodies in a convenient way.
+/// A high‑level wrapper around Dart's native [HttpRequest] used internally by
+/// the Sirius backend framework.
 ///
-/// ### Example usage:
+/// It provides a clean and developer‑friendly API for accessing:
+///
+/// • Path variables
+/// • Query parameters
+/// • Headers
+/// • JSON body fields
+/// • Uploaded files
+/// • Middleware context data
+/// • WebSocket upgrades
+///
+/// This abstraction removes boilerplate parsing logic from controllers and
+/// middleware, allowing handlers to focus purely on business logic.
+///
+/// ---------------------------------------------------------------------------
+/// 🚀 Basic Usage Example
+/// ---------------------------------------------------------------------------
 /// ```dart
-/// void handleRequest(Request req) {
-///   final userId = req.pathVariable('id');
+/// void handler(Request req) {
+///   final id = req.pathVariable('id');
 ///   final search = req.queryParam('search');
-///   final name = req.jsonValue('name');
-///   final method = req.method;
-///   final authHeader = req.headerValue('authorization');
+///   final name = req.getValue('name');
+///   final token = req.headerValue('authorization');
+///
+///   print(req.method);
 /// }
 /// ```
+///
+/// ---------------------------------------------------------------------------
+/// 📦 Body Structure
+/// ---------------------------------------------------------------------------
+/// Internally the parsed body is stored as a record:
+///
+/// ```dart
+/// (
+///   Map<String, dynamic> jsonFields,
+///   Map<String, dynamic> fileFields
+/// )
+/// ```
+///
+/// `$1` → JSON fields
+/// `$2` → File metadata
+///
+/// You normally do NOT need to access this directly.
+///
+/// ---------------------------------------------------------------------------
+/// 🔒 Lifecycle Note
+/// ---------------------------------------------------------------------------
+/// A [Request] instance is valid only during a single HTTP request lifecycle.
+/// Do NOT store it globally or reuse it after response completion.
+/// ---------------------------------------------------------------------------
 class Request {
   final HttpRequest _request;
+
+  /// Route path variables extracted by the router.
+  ///
+  /// Example route:
+  /// `/users/:id`
+  ///
+  /// Request:
+  /// `/users/42`
+  ///
+  /// Result:
+  /// `{ "id": "42" }`
   final Map<String, String> _pathVariables;
+
+  /// Parsed request body.
+  ///
+  /// `$1` → JSON fields
+  /// `$2` → uploaded files metadata
   final (Map<String, dynamic>, Map<String, dynamic>)? _body;
+
+  /// Normalized header map (lowercase keys).
   final Map<String, String> _headers = {};
+
+  /// Tracks temporary files created during request processing.
+  ///
+  /// Used internally for cleanup systems.
   List<String>? tempFilePathList;
 
-  /// Constructs a [Request] object with an [HttpRequest], path variables, and JSON body.
+  /// Creates a framework‑level request wrapper.
   ///
-  /// Automatically extracts headers into a simplified lowercase map.
+  /// Automatically extracts headers into lowercase format
+  /// for case‑insensitive lookup.
   Request(this._request, this._pathVariables, this._body) {
     _request.headers.forEach((key, values) {
       _headers[key.toLowerCase()] = values.join(', ');
@@ -296,4 +364,33 @@ class Request {
         ...allQueryParams,
         ...(_body?.$1 ?? {}), // highest priority
       };
+
+  // -------------------------------------------------------------------------
+  // WebSocket Upgrade
+  // -------------------------------------------------------------------------
+
+  /// Upgrades this HTTP request into a WebSocket connection.
+  ///
+  /// Throws an exception if request is not a valid WebSocket upgrade request.
+  ///
+  /// Example:
+  /// ```dart
+  /// final ws = await request.upgradeToWebSocket();
+  /// ws.sendEvent('connected', {'ok': true});
+  /// ```
+  Future<WsConnection> upgradeToWebSocket() async {
+    try {
+      if (!WebSocketTransformer.isUpgradeRequest(_request)) {
+        throw Exception('Request is not a valid WebSocket upgrade request');
+      }
+
+      final ws = await WebSocketTransformer.upgrade(_request);
+
+      return WsConnection(ws);
+    } on WebSocketException catch (e) {
+      throw Exception('Failed to upgrade to WebSocket: $e');
+    } catch (e) {
+      throw Exception('Failed to upgrade to WebSocket: $e');
+    }
+  }
 }
