@@ -28,8 +28,8 @@ import 'package:sirius_backend/src/helpers/logging.dart';
 ///
 /// Returns:
 ///   A middleware function of type `Future<Response> Function(Request, Future<Response> Function())`
-Future<Response> Function(
-    Request request, Future<Response> Function() nextHandler) loggerHandler() {
+Future<Response?> Function(
+    Request request, Future<Response?> Function() nextHandler) loggerHandler() {
   return (request, nextHandler) async {
     final startTime = DateTime.now();
     final response = await nextHandler();
@@ -38,7 +38,7 @@ Future<Response> Function(
     logCustom(
       'REQUEST',
       '→ ${request.method} ${request.path} '
-          '[${response.statusCode}] (${duration.inMilliseconds}ms)',
+          '[${response?.statusCode}] (${duration.inMilliseconds}ms)',
       colorCode: 96,
       italic: true,
       underline: true,
