@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:sirius_backend/sirius_backend.dart';
 import 'package:sirius_backend/src/helpers/logging.dart';
 
@@ -29,7 +31,8 @@ import 'package:sirius_backend/src/helpers/logging.dart';
 /// Returns:
 ///   A middleware function of type `Future<Response> Function(Request, Future<Response> Function())`
 Future<Response?> Function(
-    Request request, Future<Response?> Function() nextHandler) loggerHandler() {
+        Request request, FutureOr<Response?> Function() nextHandler)
+    loggerHandler() {
   return (request, nextHandler) async {
     final startTime = DateTime.now();
     final response = await nextHandler();

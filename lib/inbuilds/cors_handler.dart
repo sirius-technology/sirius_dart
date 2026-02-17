@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:sirius_backend/sirius_backend.dart';
 
 /// Creates a reusable CORS (Cross-Origin Resource Sharing) handler middleware
@@ -40,14 +42,14 @@ import 'package:sirius_backend/sirius_backend.dart';
 /// A middleware function that can be passed to `.wrap()` in a Sirius app.
 Future<Response> Function(
   Request request,
-  Future<Response> Function() nextHandler,
+  FutureOr<Response> Function() nextHandler,
 ) corsHandler({
   String allowOrigin = '*',
   String allowMethods = 'GET, POST, PUT, DELETE, OPTIONS',
   String allowHeaders = 'Origin, Content-Type, Accept, Authorization',
   bool allowCredentials = false,
 }) {
-  return (Request request, Future<Response> Function() nextHandler) async {
+  return (Request request, FutureOr<Response> Function() nextHandler) async {
     if (request.method == 'OPTIONS') {
       final response = Response();
       response.statusCode = 204;
