@@ -164,7 +164,7 @@ class WsConnection {
       final event = message["event"];
       final payload = message["data"];
 
-      if (event == null || payload == null) {
+      if (event == null || event is! String) {
         logWarning("[Socket] Invalid event base json structure");
         return;
       }
