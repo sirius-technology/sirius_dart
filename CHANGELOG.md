@@ -1,3 +1,6 @@
+## 2.4.1
+- 🧹 Minor internal cleanup on websocket part.
+
 ## 2.4.0
 - 🔌 Reworked WebSocket connection flow for cleaner lifecycle handling and improved reliability.
 - ⬆️ Added `final socketConn = await request.upgradeToWebSocket();` method to allow direct WebSocket upgrades from the request object.
