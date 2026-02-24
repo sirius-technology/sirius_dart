@@ -14,6 +14,32 @@ void logSuccess(String message) {
   print('\x1B[32m[SUCCESS] $message\x1B[0m'); // 32 = Green Color
 }
 
+void logException(
+  Object error,
+  StackTrace stack, {
+  int limit = 10,
+  String label = "ERROR",
+  int colorCode = 31,
+}) {
+  final lines = stack.toString().trim().split('\n');
+  final limited = lines.take(limit).join('\n');
+
+  final buffer = StringBuffer('\x1B[');
+  buffer.write('$colorCode');
+  buffer.write('m');
+
+  buffer.writeln('[$label] $error');
+  buffer.writeln('──── STACK TRACE (top $limit) ────');
+  buffer.writeln(limited);
+
+  if (lines.length > limit) {
+    buffer.writeln('... (${lines.length - limit} more lines)');
+  }
+
+  buffer.write('\x1B[0m');
+  print(buffer.toString());
+}
+
 /// Logs a custom-styled message with ANSI colors and text effects.
 ///
 /// Parameters:

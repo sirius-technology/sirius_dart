@@ -1,3 +1,12 @@
+## 2.4.2
+- 🚀 WebSocket engine performance and stability improvements.
+- 🏠 Introduced structured room management with safe broadcasting support.
+- 🏠 Added room management features (join, leave, broadcast, emitExceptMe).
+- 🔄 Improved room broadcasting and disconnect cleanup.
+- 🛡️ Added rate limiting and payload size protection.
+- ⚠️ Enhanced protocol validation and error handling.
+- 🧾 Refactored internal documentation.
+
 ## 2.4.1
 - 🧹 Minor internal cleanup on websocket part.
 

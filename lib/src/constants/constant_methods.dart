@@ -7,3 +7,5 @@ const String PATCH = "PATCH";
 const String DELETE = "DELETE";
 const String HEAD = "HEAD";
 const String OPTIONS = "OPTIONS";
+
+const protocolFormat = '{ "event": String, "data": any }';

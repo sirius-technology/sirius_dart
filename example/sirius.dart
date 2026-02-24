@@ -10,27 +10,35 @@ Future<void> main() async {
     return next();
   });
 
-  // app.get('file', (req) async {
-  //   return Response.sendFile(
-  //       File('/Users/someshsahu/_Beaming_India/_PROJECTS/VEDASAR/vedasar.png'),
-  //       inline: true);
-  // });
+  app.webSocket('ws', (Request req) async {
+    final WsConnection ws = await req.upgradeToWebSocket();
 
-  app.get('path', (req) {
-    return Response.send('data');
-  });
-
-  app.webSocket('ws', (req) async {
-    final ws = await req.upgradeToWebSocket();
-    ws.onData((data) {
-      ws.sendData('From Server : $data');
+    ws.on('sent_room', (Object? data) {
+      ws.to(ws.rooms.first).emitExceptMe('message', data);
     });
-    return null;
+
+    ws.on('join_room', (Object? data) {
+      if (data == null) {
+        ws.send('Data is required');
+        return;
+      }
+      if (data is! Map) {
+        ws.send('Data should be a map');
+        return;
+      }
+      if (data['room'] == null) {
+        ws.send('Room is required');
+        return;
+      }
+      if (data['room'] is! String) {
+        ws.send('Room should be a string');
+        return;
+      }
+
+      ws.join(data['room'] as String);
+      print('ROOM JOINED -> ${data['room']}');
+    });
   });
 
-  app.start(callback: (server) {
-    print("Server is running");
-  });
+  app.start();
 }
-
-// NEED TO MAKE WEBSOCKET CONN CLASS TO ALOW DEVELOPERS TO CONNECT WEBSOCKET INSIDE HANDLER

@@ -352,8 +352,8 @@ class Handler {
       if (file.existsSync()) {
         try {
           file.deleteSync();
-        } catch (err) {
-          logError(err.toString());
+        } catch (err, st) {
+          logException(err, st);
         }
       }
     }

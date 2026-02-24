@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:sirius_backend/sirius_backend.dart';
+import 'package:sirius_backend/src/helpers/create_randoms.dart';
 import 'package:sirius_backend/src/http/ws_connection.dart';
 
 /// ---------------------------------------------------------------------------
@@ -384,9 +384,9 @@ class Request {
         throw Exception('Request is not a valid WebSocket upgrade request');
       }
 
-      final ws = await WebSocketTransformer.upgrade(_request);
+      final webSocket = await WebSocketTransformer.upgrade(_request);
 
-      return WsConnection(ws);
+      return WsConnection(webSocket);
     } on WebSocketException catch (e) {
       throw Exception('Failed to upgrade to WebSocket: $e');
     } catch (e) {

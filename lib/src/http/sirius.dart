@@ -376,32 +376,43 @@ class Sirius {
   /// ```
   Future<void> start({
     int port = 3333,
-    Function(HttpServer server)? callback,
+    void Function(HttpServer server)? callback,
     ExceptionHandlerFunction? exceptionHandler,
     void Function()? onClosed,
-    Function? onError,
+    void Function(Object error, StackTrace stack)? onError,
   }) async {
     _removeTempFolder();
     _handler.registerRoutes(_routesMap, exceptionHandler);
 
     try {
       _server = await HttpServer.bind(InternetAddress.anyIPv4, port);
-    } on SocketException catch (e) {
-      if (e.osError?.errorCode == 48) {
+    } on SocketException catch (e, st) {
+      final code = e.osError?.errorCode;
+
+      if (code == 48 || code == 98 || code == 10048) {
         logError(
-            "⚠️ Port $port is already in use. Please stop the previous server or use a different port");
+          "⚠️ Port $port is already in use. Stop the previous server or use a different port.",
+        );
         return;
       }
+
+      logException(e, st);
       rethrow;
     }
 
-    if (callback != null) {
-      callback(_server!);
+    callback?.call(_server!);
+
+    if (callback == null) {
+      logSuccess("🚀 Sirius running on http://localhost:$port");
     }
 
     _server!.listen(
-      (HttpRequest request) {
-        _handler.handleRequest(request);
+      (HttpRequest request) async {
+        try {
+          await _handler.handleRequest(request);
+        } catch (e, st) {
+          logException(e, st);
+        }
       },
       onDone: onClosed,
       onError: onError,

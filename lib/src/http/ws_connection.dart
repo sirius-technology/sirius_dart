@@ -2,319 +2,592 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:sirius_backend/src/constants/constant_methods.dart';
 import 'package:sirius_backend/src/helpers/create_randoms.dart';
-import 'package:sirius_backend/src/helpers/helpers.dart';
 import 'package:sirius_backend/src/helpers/logging.dart';
 
-/// Signature for WebSocket event callbacks.
-///
-/// The [data] parameter contains the decoded payload sent by the client.
-typedef WebSocketFunction = void Function(Object? data);
+typedef WsEventHandler = void Function(Object? data);
+typedef WsMiddleware = FutureOr<bool> Function(String event, Object? data);
+typedef WsErrorHandler = void Function(Object error, StackTrace stack);
 
-/// Signature for middleware functions used to intercept incoming events.
-///
-/// Return `true` to allow the event to continue.
-/// Return `false` to block it.
-typedef SocketMiddlewareFunction = FutureOr<bool> Function(
-    String event, Object? data);
+class _WsRoomEngine {
+  final Map<String, Set<WsConnection>> _rooms = {};
+  final Map<String, Set<String>> _socketRooms = {};
 
-/// ---------------------------------------------------------------------------
+  void join(WsConnection socket, String room) {
+    _rooms.putIfAbsent(room, () => {}).add(socket);
+    _socketRooms.putIfAbsent(socket._id, () => {}).add(room);
+  }
+
+  void leave(WsConnection socket, String room) {
+    _rooms[room]?.remove(socket);
+    _socketRooms[socket._id]?.remove(room);
+
+    if (_rooms[room]?.isEmpty ?? false) {
+      _rooms.remove(room);
+    }
+  }
+
+  void leaveAll(WsConnection socket) {
+    final rooms = _socketRooms[socket._id];
+    if (rooms == null) return;
+
+    for (final r in rooms) {
+      final set = _rooms[r];
+      set?.remove(socket);
+      if (set?.isEmpty ?? false) {
+        _rooms.remove(r);
+      }
+    }
+
+    _socketRooms.remove(socket._id);
+  }
+
+  Set<String> roomsOf(WsConnection socket) => _socketRooms[socket._id] ?? {};
+
+  void emit(String room, String event, Object? data, {WsConnection? except}) {
+    final sockets = _rooms[room];
+    if (sockets == null) return;
+
+    final encoded = jsonEncode({"event": event, "data": data});
+
+    for (final s in List.from(sockets)) {
+      // 🔥 CORRECTED (safe iteration)
+      if (except != null && s == except) continue;
+      s._sendRaw(encoded);
+    }
+  }
+}
+
+final _rooms = _WsRoomEngine();
+
+/// =======================================================================
+/// WsRoomEmitter
+/// =======================================================================
+///
+/// Used for broadcasting events to a specific room.
+///
+/// Example:
+///
+/// ws.join('room1');
+///
+/// ws.to('room1').emit('chat', {
+///   'message': 'Hello everyone'
+/// });
+///
+/// To exclude sender:
+///
+/// ws.to('room1').emitExceptMe('chat', {
+///   'message': 'Hello except me'
+/// });
+class WsRoomEmitter {
+  final String room;
+  final WsConnection sender;
+
+  WsRoomEmitter(this.room, this.sender);
+
+  /// Broadcasts an event to all sockets in the room.
+  ///
+  /// Example:
+  ///
+  /// ws.to('room1').emit('chat', {
+  ///   'message': 'Hello everyone'
+  /// });
+  ///
+  /// The sender is INCLUDED in broadcast.
+  void emit(String event, Object? data) {
+    _rooms.emit(room, event, data);
+  }
+
+  /// Broadcasts an event to all sockets in the room
+  /// except the sender.
+  ///
+  /// Example:
+  ///
+  /// ws.to('room1').emitExceptMe('chat', {
+  ///   'message': 'Hello others'
+  /// });
+  ///
+  /// The sender will NOT receive this event.
+  void emitExceptMe(String event, Object? data) {
+    _rooms.emit(room, event, data, except: sender);
+  }
+}
+
+/// =======================================================================
 /// WsConnection
-/// ---------------------------------------------------------------------------
+/// =======================================================================
 ///
-/// A high‑level wrapper around Dart's native [WebSocket] that provides
-/// **event‑based communication**, similar to Socket.IO but lightweight
-/// and dependency‑free.
+/// Represents a single WebSocket client connection.
 ///
-/// It adds:
-/// - Named event listeners
-/// - One‑time listeners
-/// - Middleware system
-/// - Raw message inspection
-/// - Structured JSON messaging
-/// - Lifecycle hooks (disconnect + error)
+/// This class provides:
 ///
-/// ---------------------------------------------------------------------------
-/// 📦 Message Format
-/// ---------------------------------------------------------------------------
-/// All structured messages must follow this JSON format:
+/// • Event-based messaging (`on`, `emit`)
+/// • Room-based broadcasting (`join`, `to`)
+/// • Middleware support (`use`)
+/// • One-time listeners (`once`)
+/// • Rate limiting (100 messages/sec)
+/// • Payload size guard (100KB)
+/// • Raw message handling mode
+/// • Error handling hooks
+/// • Automatic cleanup on disconnect
 ///
-/// ```json
+/// -----------------------------------------------------------------------
+/// BASIC EXAMPLE
+/// -----------------------------------------------------------------------
+///
+/// app.webSocket('/ws', (Request req) async {
+///   final ws = await req.upgradeToWebSocket();
+///
+///   ws.on('hello', (data) {
+///     ws.emit('reply', {'message': 'Hello client'});
+///   });
+///
+///   ws.onDisconnect(() {
+///     print('Client disconnected: ${ws.getId}');
+///   });
+/// });
+///
+/// -----------------------------------------------------------------------
+/// MESSAGE FORMAT (Default Mode)
+/// -----------------------------------------------------------------------
+///
+/// Incoming messages must follow:
+///
 /// {
 ///   "event": "event_name",
-///   "data": any
+///   "data": { ... }
 /// }
-/// ```
 ///
-/// If a message does not match this structure, it will be ignored.
+/// -----------------------------------------------------------------------
+/// RAW MODE
+/// -----------------------------------------------------------------------
 ///
-/// ---------------------------------------------------------------------------
-/// 🚀 Basic Example
-/// ---------------------------------------------------------------------------
-/// ```dart
-/// final socket = WsConnection(webSocket);
+/// If you register:
 ///
-/// socket.onEvent("chat", (data) {
-///   print("Chat message: $data");
-/// });
+///   ws.onRaw((raw) {
+///     print(raw);
+///   });
 ///
-/// socket.sendEvent("welcome", {"message": "Hello client!"});
-/// ```
+/// Then non-JSON messages are allowed.
 ///
-/// ---------------------------------------------------------------------------
-/// 🛡 Middleware Example
-/// ---------------------------------------------------------------------------
-/// ```dart
-/// socket.use((event, data) {
-///   if (event == "admin" && data["token"] != "secret") {
-///     return false; // block event
-///   }
-///   return true;
-/// });
-/// ```
+/// -----------------------------------------------------------------------
+/// RATE LIMITING
+/// -----------------------------------------------------------------------
 ///
-/// ---------------------------------------------------------------------------
-/// ⏱ onceEvent Example
-/// ---------------------------------------------------------------------------
-/// ```dart
-/// socket.onceEvent(
-///   "pong",
-///   (data) => print("Received once: $data"),
-///   timeout: Duration(seconds: 5),
-///   onTimeout: () => print("Timeout waiting for pong")
-/// );
-/// ```
+/// Each connection is limited to:
 ///
-/// ---------------------------------------------------------------------------
-/// 🔌 Disconnect Example
-/// ---------------------------------------------------------------------------
-/// ```dart
-/// socket.onDisconnect(() {
-///   print("Client disconnected: ${socket.getId}");
-/// });
-/// ```
+///   100 messages per second
 ///
-/// ---------------------------------------------------------------------------
-/// ⚠ Error Handling Example
-/// ---------------------------------------------------------------------------
-/// ```dart
-/// socket.onError((error, stack) {
-///   print("Socket error: $error");
-/// });
-/// ```
-/// ---------------------------------------------------------------------------
+/// If exceeded, connection closes with:
+///
+///   1008 → Policy violation
+///
+/// -----------------------------------------------------------------------
+/// PAYLOAD SIZE LIMIT
+/// -----------------------------------------------------------------------
+///
+/// Max payload size:
+///
+///   100 KB
+///
+/// If exceeded:
+///
+///   1009 → Message too big
+///
+/// -----------------------------------------------------------------------
+/// CLOSE CODES
+/// -----------------------------------------------------------------------
+///
+/// 1000 → Normal close
+/// 1003 → Unsupported data
+/// 1008 → Rate limit exceeded
+/// 1009 → Message too large
 class WsConnection {
-  final WebSocket _webSocket;
+  final WebSocket _socket;
 
-  /// Registered event listeners mapped by event name.
-  final Map<String, List<WebSocketFunction>> _listeners = {};
+  late final String _id;
 
-  /// Middleware chain executed before dispatching events.
-  final List<SocketMiddlewareFunction> _middlewares = [];
+  final Map<String, List<WsEventHandler>> _listeners = {};
+  final List<WsMiddleware> _middlewares = [];
 
-  /// Unique ID for this connection instance.
-  final String _id;
+  void Function()? _onDisconnect;
+  WsErrorHandler? _onSocketError;
+  WsErrorHandler? _onHandlerError;
 
-  /// Optional disconnect handler.
-  void Function()? _onDisconnectHandler;
+  void Function(String raw)? _onRaw;
 
-  /// Optional error handler.
-  void Function(Object error, StackTrace stackTrace)? _onErrorHandler;
+  bool _closed = false;
 
-  /// Optional raw data listener.
-  void Function(String rawMessage)? _onRawData;
+  int _messageCount = 0;
+  DateTime _lastReset = DateTime.now();
 
-  /// Creates a new [WsConnection] wrapping an existing [WebSocket].
-  ///
-  /// Automatically attaches listeners for:
-  /// - incoming messages
-  /// - disconnection
-  /// - errors
-  WsConnection(this._webSocket) : _id = createUuid() {
-    _webSocket.listen(
-      _onMessage,
-      onDone: _onDone,
-      onError: _onError,
+  WsConnection(this._socket) {
+    _id = createUuid();
+
+    _socket.pingInterval = const Duration(seconds: 30);
+
+    _socket.listen(
+      _handleMessage,
+      onDone: _handleClose,
+      onError: _handleErr,
     );
   }
 
-  /// Unique identifier for this socket connection.
+  /// Unique identifier of this WebSocket connection.
   ///
-  /// This remains constant until the connection closes.
-  String get getId => _id;
-
-  // -------------------------------------------------------------------------
-  // Internal Handlers
-  // -------------------------------------------------------------------------
-
-  /// Processes incoming raw WebSocket messages.
-  ///
-  /// Steps:
-  /// 1. Emits raw data listener (if registered)
-  /// 2. Validates JSON structure
-  /// 3. Runs middleware chain
-  /// 4. Dispatches event to listeners
-  Future<void> _onMessage(dynamic data) async {
-    try {
-      if (_onRawData != null) _onRawData!(data);
-
-      final message = isValidJsonData(data);
-      if (message == null) return;
-
-      final event = message["event"];
-      final payload = message["data"];
-
-      if (event == null || event is! String || event.isEmpty) {
-        logWarning("[Socket] Invalid event base json structure");
-        return;
-      }
-
-      for (final middleware in _middlewares) {
-        final result = await middleware(event, payload);
-        if (!result) return;
-      }
-
-      _listeners[event]?.forEach((cb) => cb(payload));
-    } catch (e, _) {
-      logError("[Socket Error] Invalid message format: $e");
-    }
-  }
-
-  /// Called automatically when socket closes.
-  void _onDone() {
-    _listeners.clear();
-    _middlewares.clear();
-
-    if (_onDisconnectHandler != null) {
-      _onDisconnectHandler?.call();
-    } else {
-      logWarning("[Socket] Disconnected");
-    }
-  }
-
-  /// Called automatically when a socket error occurs.
-  void _onError(Object error, StackTrace stackTrace) {
-    if (_onErrorHandler != null) {
-      _onErrorHandler!(error, stackTrace);
-    } else {
-      logError('[Socket Error] $error');
-    }
-  }
-
-  // -------------------------------------------------------------------------
-  // Public API
-  // -------------------------------------------------------------------------
-
-  /// Listen to raw incoming data before JSON parsing.
+  /// This ID is auto-generated when the connection is created.
   ///
   /// Useful for:
-  /// - debugging
-  /// - logging
-  /// - inspecting malformed packets
-  void onData(void Function(String data) callback) {
-    _onRawData = callback;
-  }
-
-  /// Registers a callback fired when the client disconnects.
-  void onDisconnect(void Function() callback) {
-    _onDisconnectHandler = callback;
-  }
-
-  /// Registers a handler for socket‑level errors.
-  void onError(void Function(Object error, StackTrace stackTrace) callback) {
-    _onErrorHandler = callback;
-  }
-
-  /// Subscribes to a named event.
-  ///
-  /// Multiple listeners can be registered for the same event.
+  /// • Tracking users
+  /// • Broadcasting sender identity
+  /// • Debug logging
   ///
   /// Example:
-  /// ```dart
-  /// socket.onEvent("message", (data) {
+  ///
+  /// print(ws.getId);
+  String get getId => _id;
+
+  /// Registers an event listener.
+  ///
+  /// Example:
+  ///
+  /// ws.on('chat', (data) {
   ///   print(data);
   /// });
-  /// ```
-  void onEvent(String event, WebSocketFunction callback) {
-    _listeners.putIfAbsent(event, () => []).add(callback);
+  ///
+  /// Multiple listeners can be registered for the same event.
+  void on(String event, WsEventHandler cb) {
+    _listeners.putIfAbsent(event, () => []).add(cb);
   }
 
-  /// Removes all listeners associated with [event].
-  void offEvent(String event) {
-    _listeners.remove(event);
+  /// Removes an event listener.
+  ///
+  /// If [handler] is provided:
+  ///   → Only that specific listener is removed.
+  ///
+  /// If [handler] is null:
+  ///   → All listeners for the event are removed.
+  ///
+  /// Example:
+  ///
+  /// ws.off('chat'); // remove all chat listeners
+  ///
+  /// ws.off('chat', myHandler); // remove specific handler
+  void off(String event, [WsEventHandler? handler]) {
+    if (handler == null) {
+      _listeners.remove(event);
+    } else {
+      _listeners[event]?.remove(handler);
+    }
   }
 
-  /// Registers a listener that runs only once.
+  /// Registers a one-time event listener.
   ///
-  /// After execution, the listener is automatically removed.
+  /// The handler is automatically removed after first execution.
   ///
-  /// Optional:
-  /// - [timeout] → auto‑remove if event never fires
-  /// - [onTimeout] → callback when timeout triggers
-  void onceEvent(
-    String event,
-    WebSocketFunction callback, {
-    Duration? timeout,
-    void Function()? onTimeout,
-  }) {
+  /// Optional [timeout] removes the listener if event
+  /// does not fire within the duration.
+  ///
+  /// Example:
+  ///
+  /// ws.once('payment_success', (data) {
+  ///   print('Payment confirmed');
+  /// }, timeout: Duration(seconds: 30));
+  void once(String event, WsEventHandler cb, {Duration? timeout}) {
     Timer? timer;
 
     void wrapper(data) {
-      callback(data);
-      offEvent(event);
+      cb(data);
+      off(event, wrapper);
       timer?.cancel();
     }
 
-    onEvent(event, wrapper);
+    on(event, wrapper);
 
     if (timeout != null) {
       timer = Timer(timeout, () {
-        offEvent(event);
-        onTimeout?.call();
+        off(event, wrapper);
       });
     }
   }
 
-  /// Sends a structured event to the client.
+  /// Adds middleware for event interception.
   ///
-  /// Automatically encodes into JSON format.
+  /// Middleware runs before event handlers.
+  ///
+  /// Return:
+  ///   true  → Continue execution
+  ///   false → Block event
   ///
   /// Example:
-  /// ```dart
-  /// socket.sendEvent("notification", {"title": "New order"});
-  /// ```
-  void sendEvent(String event, Object? data) {
-    final message = jsonEncode({"event": event, "data": data});
-    _webSocket.add(message);
+  ///
+  /// ws.use((event, data) async {
+  ///   if (event == 'admin_only' && !isAdmin(ws)) {
+  ///     return false;
+  ///   }
+  ///   return true;
+  /// });
+  void use(WsMiddleware mw) => _middlewares.add(mw);
+
+  /// Joins this socket to a room.
+  ///
+  /// Example:
+  ///
+  /// ws.join('chat_room');
+  void join(String room) => _rooms.join(this, room);
+
+  /// Removes this connection from a specific room.
+  ///
+  /// Example:
+  ///
+  /// ws.leave('chat_room');
+  ///
+  /// If the room becomes empty, it is automatically deleted.
+  void leave(String room) => _rooms.leave(this, room);
+
+  /// Removes this connection from all joined rooms.
+  ///
+  /// Example:
+  ///
+  /// ws.leaveAll();
+  ///
+  /// Automatically called when the connection disconnects.
+  void leaveAll() => _rooms.leaveAll(this);
+
+  /// Returns all rooms joined by this connection.
+  ///
+  /// Example:
+  ///
+  /// final joinedRooms = ws.rooms;
+  /// print(joinedRooms);
+  ///
+  /// Returns an empty Set if no rooms joined.
+  Set<String> get rooms => _rooms.roomsOf(this);
+
+  /// Returns a room emitter for broadcasting.
+  ///
+  /// Example:
+  ///
+  /// ws.to('chat_room').emit('message', {'text': 'Hello'});
+  WsRoomEmitter to(String room) => WsRoomEmitter(room, this);
+
+  /// Sends an event to this socket.
+  ///
+  /// Example:
+  ///
+  /// ws.emit('chat', {'message': 'Hello'});
+  void emit(String event, Object? data) {
+    _sendRaw(jsonEncode({"event": event, "data": data}));
   }
 
-  /// Sends raw text data directly to the socket.
+  /// Sends raw string data directly to the client.
   ///
-  /// No JSON encoding or validation is performed.
-  void sendData(String data) {
-    _webSocket.add(data);
+  /// Unlike [emit], this does NOT wrap the message
+  /// in the Sirius event JSON format.
+  ///
+  /// Example:
+  ///
+  /// ws.send('plain text message');
+  ///
+  /// ⚠ Use this only if you control the client protocol.
+  /// For standard Sirius messaging, prefer [emit].
+  void send(String raw) => _sendRaw(raw);
+
+  void _sendRaw(String data) {
+    if (_closed) return;
+
+    try {
+      _socket.add(data);
+    } catch (err, st) {
+      // 🔥 CORRECTED (correct error channel)
+      _onSocketError?.call(err, st);
+      if (_onSocketError == null) {
+        logException(err, st);
+      }
+    }
   }
 
-  /// Adds middleware to the processing chain.
+  /// Registers a disconnect handler.
   ///
-  /// Middleware runs **before** event listeners.
-  /// If any middleware returns `false`, the event is cancelled.
-  void use(SocketMiddlewareFunction middleware) {
-    _middlewares.add(middleware);
+  /// Called when:
+  /// • Client closes connection
+  /// • Server closes connection
+  /// • Network drops
+  ///
+  /// Example:
+  ///
+  /// ws.onDisconnect(() {
+  ///   print('Client ${ws.getId} disconnected');
+  /// });
+  ///
+  /// Only one disconnect handler can be registered.
+  /// Registering again overrides the previous one.
+  void onDisconnect(void Function() fn) => _onDisconnect = fn;
+
+  /// Registers a low-level socket error handler.
+  ///
+  /// Triggered when:
+  /// • Underlying WebSocket throws
+  /// • Send failures occur
+  void onSocketError(WsErrorHandler fn) => _onSocketError = fn;
+
+  /// Registers an error handler for event callbacks.
+  ///
+  /// Triggered when an event listener throws an exception.
+  void onHandlerError(WsErrorHandler fn) => _onHandlerError = fn;
+
+  /// Enables raw message handling mode.
+  ///
+  /// When enabled:
+  /// • Non-JSON messages are allowed
+  /// • Invalid JSON will NOT be rejected
+  ///
+  /// Example:
+  ///
+  /// ws.onRaw((raw) {
+  ///   print('Received raw: $raw');
+  /// });
+  ///
+  /// If not registered, Sirius expects messages in:
+  ///
+  /// {
+  ///   "event": "event_name",
+  ///   "data": ...
+  /// }
+  ///
+  /// ⚠ Intended for custom protocols or streaming.
+  void onRaw(void Function(String raw) fn) => _onRaw = fn;
+
+  /// Closes this WebSocket connection.
+  ///
+  /// Default close code:
+  ///   1000 → Normal closure
+  ///
+  /// Example:
+  ///
+  /// await ws.close();
+  Future<void> close([int code = 1000]) async {
+    if (_closed) return;
+    _closed = true;
+    await _socket.close(code);
   }
 
-  /// Direct access to underlying WebSocket instance.
-  ///
-  /// Use this only if low‑level control is required.
-  WebSocket get rawWebSocket => _webSocket;
+  Future<void> _handleMessage(dynamic raw) async {
+    try {
+      if (raw is! String) {
+        logWarning(
+            "WS [$_id]: Binary frame received but Sirius expects text-based JSON messages. Connection closed (1003).");
+        await close(1003);
+        return;
+      }
 
-  /// Closes the socket connection gracefully.
-  ///
-  /// Defaults to normal closure status.
-  Future<void> close({
-    int code = WebSocketStatus.normalClosure,
-    String? reason,
-  }) async {
-    await _webSocket.close(code, reason);
+      _onRaw?.call(raw);
+
+      if (raw.length > 100000) {
+        logWarning(
+            "WS [$_id]: Payload exceeded 100KB limit. Connection closed (1009 - message too big).");
+        await close(1009);
+        return;
+      }
+
+      final now = DateTime.now();
+      if (now.difference(_lastReset).inSeconds >= 1) {
+        _messageCount = 0;
+        _lastReset = now;
+      }
+
+      _messageCount++;
+      if (_messageCount > 100) {
+        logWarning(
+            "WS [$_id]: Rate limit exceeded (more than 100 messages/sec). Connection closed (1008 - policy violation).");
+        await close(1008); // policy violation
+        return;
+      }
+
+      Map<String, dynamic>? decoded;
+
+      try {
+        final temp = jsonDecode(raw);
+
+        if (temp is Map<String, dynamic>) {
+          decoded = temp;
+        } else {
+          // Valid JSON but not Map
+          if (_onRaw == null) {
+            logWarning(
+                "WS [$_id]: Invalid JSON received. Expected: $protocolFormat. Message ignored.");
+            // await close(1003);
+            return;
+          }
+        }
+      } catch (_) {
+        // Invalid JSON syntax
+        if (_onRaw == null) {
+          logWarning(
+              "WS [$_id]: Invalid message structure. Expected: $protocolFormat. Message ignored.");
+          // await close(1003);
+          return;
+        } else {
+          return; // raw mode allowed
+        }
+      }
+
+      if (decoded == null) return;
+
+      final event = decoded["event"];
+      final data = decoded["data"];
+
+      if (event is! String) {
+        if (_onRaw == null) {
+          logWarning(
+              "WS [$_id]: 'event' field must be a String. Message ignored.");
+          // await close(1003);
+        }
+        return;
+      }
+
+      for (final mw in _middlewares) {
+        final ok = await mw(event, data);
+        if (!ok) return;
+      }
+
+      final list = _listeners[event];
+      if (list == null) return;
+
+      for (final cb in List.from(list)) {
+        try {
+          cb(data);
+        } catch (err, st) {
+          _onHandlerError?.call(err, st);
+          if (_onHandlerError == null) {
+            logException(err, st);
+          }
+        }
+      }
+    } catch (err, st) {
+      _onHandlerError?.call(err, st);
+      if (_onHandlerError == null) {
+        logException(err, st);
+      }
+    }
+  }
+
+  void _handleClose() {
+    if (_closed) return;
+    _closed = true;
+
+    _rooms.leaveAll(this);
+    _listeners.clear();
+    _middlewares.clear();
+
+    _onDisconnect?.call();
+  }
+
+  void _handleErr(Object e, StackTrace st) {
+    _onSocketError?.call(e, st);
+    if (_onSocketError == null) {
+      logException(e, st);
+    }
   }
 }

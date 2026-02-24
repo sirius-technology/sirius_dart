@@ -67,3 +67,5 @@ export 'inbuilds/logger_handler.dart';
 // connection count
 
 // Right now your WsConnection is good — but you need a manager for scaling.
+
+// what is heartbeat in websocket and need to add heartbeat in websockets
