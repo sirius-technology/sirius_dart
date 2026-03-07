@@ -220,18 +220,18 @@ sirius.webSocket('/chat', (request) async {
   print("Client connected: $connId");
 
   // Respond to a custom event
-  socketConn.onEvent("ping", (data) {
+  socketConn.on("ping", (data) {
     print("Received ping: $data");
-    socketConn.sendEvent("pong", {
+    socketConn.emit("pong", {
       "message": "Pong received!",
       "echo": data,
     });
   });
 
   // Listen to raw messages (not event-based)
-  socketConn.onData((msg) {
+  socketConn.onRaw((msg) {
     print("Raw message: $msg");
-    socketConn.sendData("Echo: $msg");
+    socketConn.send("Echo: $msg");
   });
 
   // Handle disconnection

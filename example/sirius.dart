@@ -38,6 +38,8 @@ Future<void> main() async {
       ws.join(data['room'] as String);
       print('ROOM JOINED -> ${data['room']}');
     });
+
+    return null;
   });
 
   app.start();
