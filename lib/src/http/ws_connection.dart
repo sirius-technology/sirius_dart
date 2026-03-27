@@ -213,7 +213,7 @@ class WsConnection {
 
   void Function()? _onDisconnect;
   WsErrorHandler? _onSocketError;
-  WsErrorHandler? _onHandlerError;
+  WsErrorHandler? _onDataError;
 
   void Function(String raw)? _onRaw;
 
@@ -435,7 +435,7 @@ class WsConnection {
   /// Registers an error handler for event callbacks.
   ///
   /// Triggered when an event listener throws an exception.
-  void onHandlerError(WsErrorHandler fn) => _onHandlerError = fn;
+  void onDataError(WsErrorHandler fn) => _onDataError = fn;
 
   /// Enables raw message handling mode.
   ///
@@ -559,15 +559,15 @@ class WsConnection {
         try {
           cb(data);
         } catch (err, st) {
-          _onHandlerError?.call(err, st);
-          if (_onHandlerError == null) {
+          _onDataError?.call(err, st);
+          if (_onDataError == null) {
             logException(err, st);
           }
         }
       }
     } catch (err, st) {
-      _onHandlerError?.call(err, st);
-      if (_onHandlerError == null) {
+      _onDataError?.call(err, st);
+      if (_onDataError == null) {
         logException(err, st);
       }
     }

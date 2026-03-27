@@ -1,3 +1,7 @@
+## 2.4.3
+- 🧹 Minor internal cleanup and better error handling.
+- 🛠️ Fixed issue where exception handler was not being called for WebSocket connections.
+
 ## 2.4.2
 - 🚀 WebSocket engine performance and stability improvements.
 - 🏠 Introduced structured room management with safe broadcasting support.

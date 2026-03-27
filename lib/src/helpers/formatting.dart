@@ -1,7 +1,10 @@
 List<Map<String, dynamic>>? formatStackTrace(StackTrace stackTrace) {
   final lines = stackTrace.toString().split('\n');
 
-  return lines.where((line) => line.trim().isNotEmpty).map((line) {
+  return lines
+      .where((line) => line.trim().isNotEmpty)
+      .take(10) // limit to 10 lines
+      .map((line) {
     final regex = RegExp(r'#\d+\s+(.+?) \((.+?):(\d+)(?::(\d+))?\)');
     final match = regex.firstMatch(line.trim());
 

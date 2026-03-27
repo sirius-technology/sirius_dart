@@ -95,8 +95,12 @@ class Handler {
         _sendSuccessResponse(newRequest, response);
       }
     } catch (err, stackTrace) {
-      _sendErrorResponse(
-          newRequest, HttpStatus.internalServerError, err, stackTrace);
+      if (WebSocketTransformer.isUpgradeRequest(request)) {
+        logException(err, stackTrace);
+      } else {
+        _sendErrorResponse(
+            newRequest, HttpStatus.internalServerError, err, stackTrace);
+      }
     }
     // ---------------------------------
   }
