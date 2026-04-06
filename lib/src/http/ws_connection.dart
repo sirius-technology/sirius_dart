@@ -208,6 +208,8 @@ class WsConnection {
 
   late final String _id;
 
+  dynamic _contextData;
+
   final Map<String, List<WsEventHandler>> _listeners = {};
   final List<WsMiddleware> _middlewares = [];
 
@@ -233,6 +235,14 @@ class WsConnection {
       onError: _handleErr,
     );
   }
+
+  /// Sets a value in the connection context.
+  set setContextData(dynamic data) {
+    _contextData = data;
+  }
+
+  /// Gets a value from the connection context.
+  dynamic get getContextData => _contextData;
 
   /// Unique identifier of this WebSocket connection.
   ///
